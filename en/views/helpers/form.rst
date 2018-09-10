@@ -1549,7 +1549,21 @@ These options are common for the date and time related controls:
 
 * ``'empty'`` - If ``true`` an extra, empty, ``option`` HTML element is
   added inside ``select`` at the top of the list. If a string, that string is
-  displayed as the empty element. Defaults to ``true``.
+  displayed as the empty element. Defaults to ``true``. 
+  
+*An array may also be passed to set the empty text for each item. For example:
+
+.. php:method:: echo $this->Form->control('birth_date', [
+                'empty'=>['month'=>'Month','day'=>'Day','year'=>'Year']
+            ]);
+
+*Results in the following (note options truncated for clarity):
+
+.. code-block:: html
+    <select name="birth_date[month]"><option value="" selected="selected">Month</option><option value="01">January</option><option value="02">February</option></select>
+    <select name="birth_date[day]"><option value="" selected="selected">Day</option><option value="01">1</option><option value="02">2</option><option value="03">3</option><option value="04">4</option></select>
+    <select name="birth_date[year]"><option value="" selected="selected">Year</option><option value="2012">2012</option><option value="2011">2011</option></select>
+
 
 * ``'default'`` | ``value`` - Use either of the two to set the default value to
   be shown by the field. A value in ``$this->request->getData()`` matching the field
