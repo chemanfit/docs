@@ -7,6 +7,11 @@ The Folder and File utilities are convenience classes to help you read from and
 write/append to files; list files within a folder and other common directory
 related tasks.
 
+.. deprecated:: 4.0
+    The ``File`` and ``Folder`` classes will be removed in 5.0.
+    Use SPL classes like ``SplFileInfo`` or ``SplFileObject`` and iterator 
+    classes like ``RecursiveDirectoryIterator``, ``RecursiveRegexIterator`` etc. instead.
+
 Basic Usage
 ===========
 
@@ -19,9 +24,9 @@ Then we can setup a new folder instance::
 
     $dir = new Folder('/path/to/folder');
 
-and search for all *.ctp* files within that folder using regex::
+and search for all *.php* files within that folder using regex::
 
-    $files = $dir->find('.*\.ctp');
+    $files = $dir->find('.*\.php');
 
 Now we can loop through the files and read from or write/append to the contents or
 simply delete the file::
@@ -234,10 +239,9 @@ Folder API
 
     Recursive directory move.
 
-.. php:staticmethod:: normalizePath(string $path)
+.. php:staticmethod:: normalizeFullPath(string $path)
 
-    Returns a correct set of slashes for given $path ('\\' for
-    Windows paths and '/' for other paths).
+    Returns a path with slashes normalized for the operating system.
 
 .. php:method:: pwd()
 
@@ -326,7 +330,7 @@ File API
 
 .. php:method:: copy(string $dest, boolean $overwrite = true)
 
-    Copy the file to $dest.
+    Copy the file to the absolute path ``$dest``.
 
 .. php:method:: create()
 

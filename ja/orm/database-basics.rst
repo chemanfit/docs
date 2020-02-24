@@ -62,6 +62,10 @@ Select 文の実行
 
 これは引数として複合データ型を使用することも可能です。 ::
 
+    use Cake\Datasource\ConnectionManager;
+    use DateTime;
+
+    $connection = ConnectionManager::get('default');
     $results = $connection
         ->execute(
             'SELECT * FROM articles WHERE created >= :created',
@@ -76,7 +80,7 @@ SQL 文を手で書く代わりに、クエリービルダーを使うことも�
         ->newQuery()
         ->select('*')
         ->from('articles')
-        ->where(['created >' => new DateTime('1 day ago'), ['created' => 'datetime']])
+        ->where(['created >' => new DateTime('1 day ago')], ['created' => 'datetime'])
         ->order(['title' => 'DESC'])
         ->execute()
         ->fetchAll('assoc');
@@ -87,6 +91,7 @@ Insert 文の実行
 データベースに行を追加するのは、通常は数行の話しです。 ::
 
     use Cake\Datasource\ConnectionManager;
+    use DateTime;
 
     $connection = ConnectionManager::get('default');
     $connection->insert('articles', [
@@ -132,7 +137,7 @@ Delete 文の実行
             'persistent' => false,
             'host' => 'localhost',
             'username' => 'my_app',
-            'password' => 'sekret',
+            'password' => 'secret',
             'database' => 'my_app',
             'encoding' => 'utf8',
             'timezone' => 'UTC',
@@ -153,7 +158,7 @@ Delete 文の実行
         'persistent' => false,
         'host' => 'localhost',
         'username' => 'my_app',
-        'password' => 'sekret',
+        'password' => 'secret',
         'database' => 'my_app',
         'encoding' => 'utf8',
         'timezone' => 'UTC',
@@ -164,7 +169,7 @@ Delete 文の実行
 これは、環境変数や :term:`PaaS` 環境で作業する時に便利です。::
 
     ConnectionManager::config('default', [
-        'url' => 'mysql://my_app:sekret@localhost/my_app?encoding=utf8&timezone=UTC&cacheMetadata=true',
+        'url' => 'mysql://my_app:secret@localhost/my_app?encoding=utf8&timezone=UTC&cacheMetadata=true',
     ]);
 
 DSN 文字列を使用するときには、クエリー文字列引数として追加のパラメーターやオプションを
@@ -784,7 +789,7 @@ SQL 文を準備したら、あなたは追加のデータをバインドし、�
     $rows = $stmt->fetchAll('assoc');
 
     // 全行読み込んだ結果を順次処理する
-    foreach ($rows as $row) {
+    foreach ($stmt as $row) {
         // Do work
     }
 
@@ -874,7 +879,7 @@ Web リクエストの時に便利です。 ::
 引用符を使うことができます。
 また、実行時にこの機能を有効にすることもできます。 ::
 
-    $conn->driver()->autoQuoting(true);
+    $conn->getDriver()->enableAutoQuoting();
 
 有効にすると、引用識別子は 全ての識別子を ``IdentifierExpression`` オブジェクトに
 変換するトラバーサルが発生する原因になります。
@@ -917,7 +922,7 @@ CakePHP の ORM は、あなたのアプリケーションのスキーマ、イ�
     $connection->cacheMetadata('orm_metadata');
 
 CakePHP にはメタデータキャッシュを管理するための CLI ツールも同梱しています。
-詳細については :doc:`/console-and-shells/orm-cache` を参照してください。
+詳細については :doc:`/console-and-shells/schema-cache` を参照してください。
 
 データベースの作成
 ==================

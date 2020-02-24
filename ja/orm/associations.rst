@@ -174,6 +174,32 @@ Doctors hasOne Mentors mentors.doctor\_id
         }
     }
 
+異なる Addresses を複数のアソシエーションに分割したい場合は、次のようにすることができます。 ::
+
+    class UsersTable extends Table
+    {
+        public function initialize(array $config)
+        {
+            $this->hasOne('HomeAddress', [
+                    'className' => 'Addresses'
+                ])
+                ->setProperty('home_address')
+                ->setConditions(['HomeAddress.label' => 'Home'])
+                ->setDependent(true);
+            $this->hasOne('WorkAddress', [
+                    'className' => 'Addresses'
+                ])
+                ->setProperty('work_address')
+                ->setConditions(['WorkAddress.label' => 'Work'])
+                ->setDependent(true);
+        }
+    }
+
+.. note::
+
+    条件の中に ``label`` のような同じカラムを持つ複数の hasOne アソシエーションがある場合は、
+    上記のようにカラム名の前にテーブルの別名を使用する必要があります。
+
 hasOne アソシエーションの配列で可能なキーは以下の通りです。
 
 - **className**: 当該のモデルに関連付けられるモデルのクラス名。 'User hasOne Address'
@@ -295,7 +321,9 @@ belongsTo アソシエーションの配列で可能なキーは以下の通り�
         echo $address->user->username;
     }
 
-上記は次のような SQL を実行します。 ::
+上記は次のような SQL を実行します。
+
+.. code-block:: sql
 
     SELECT * FROM addresses LEFT JOIN users ON addresses.user_id = users.id;
 
@@ -411,12 +439,16 @@ hasMany アソシエーションの配列で可能なキーは以下の通りで
         echo $article->comments[0]->text;
     }
 
-上記は次のような SQL を実行します。 ::
+上記は次のような SQL を実行します。
+
+.. code-block:: sql
 
     SELECT * FROM articles;
     SELECT * FROM comments WHERE article_id IN (1, 2, 3, 4, 5);
 
-サブクエリーのストラテジーが使われた時は、次のような SQL が生成されます。 ::
+サブクエリーのストラテジーが使われた時は、次のような SQL が生成されます。
+
+.. code-block:: sql
 
     SELECT * FROM articles;
     SELECT * FROM comments WHERE article_id IN (SELECT id FROM articles);
@@ -557,7 +589,9 @@ belongsToMany アソシエーションの配列で可能なキーは以下の通
         echo $article->tags[0]->text;
     }
 
-上記は次のような SQL を実行します。 ::
+上記は次のような SQL を実行します。
+
+.. code-block:: sql
 
     SELECT * FROM articles;
     SELECT * FROM tags
@@ -566,7 +600,9 @@ belongsToMany アソシエーションの配列で可能なキーは以下の通
       AND article_id IN (1, 2, 3, 4, 5)
     );
 
-サブクエリーのストラテジーが使われた時は、次のような SQL が生成されます。 ::
+サブクエリーのストラテジーが使われた時は、次のような SQL が生成されます。
+
+.. code-block:: sql
 
     SELECT * FROM articles;
     SELECT * FROM tags

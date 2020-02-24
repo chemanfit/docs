@@ -1,9 +1,9 @@
 Welcome
 #######
 
-CakePHP 3 is a web development framework running on **PHP 7.2** (min. PHP |minphpversion|).
+CakePHP 4 is a web development framework running on PHP |phpversion| (min. PHP |minphpversion|).
 Read :doc:`CakePHP at a Glance </intro>` to get an introduction to the
-fundamentals of CakePHP 3.
+fundamentals of CakePHP.
 
 The CakePHP cookbook is an openly developed and community editable documentation
 project. Notice the pencil icon button fixated against the right wall; it will
@@ -20,7 +20,7 @@ contribute any additions, deletions, or corrections to the documentation.
     EPUB, you can now read it on more devices, as well as offline.
 
     - `PDF <../_downloads/en/CakePHPCookbook.pdf>`_
-    - `EPUB <../_downloads/en/CakePHPCookbook.epub>`_
+    - `EPUB <../_downloads/en/CakePHP.epub>`_
     - `Original Source <http://github.com/cakephp/docs>`_
 
 Getting Help
@@ -38,7 +38,7 @@ get the common tasks completed. If you are new, you should start off with the
 :doc:`/quickstart` as it will give you a quick tour of what
 CakePHP has to offer and how it works.
 
-After you've finished the Bookmarker Tutorial, you can brush up on the key
+After you've finished the Quickstart tutorial, you can brush up on the key
 elements in a CakePHP application:
 
 * The :ref:`CakePHP request cycle <request-cycle>`

@@ -24,7 +24,7 @@ the migrations plugin is already under ``require``. If not, add it by executing:
     composer require cakephp/migrations:~1.0
 
 The migrations plugin will now be in your application's **plugins** folder.
-Also, add ``Plugin::load('Migrations');`` to your application's **bootstrap.php** file.
+Also, add ``$this->addPlugin('Migrations');`` to your application's ``bootstrap`` method.
 
 Once the plugin is loaded, run the following command to create a migration file::
 
@@ -148,7 +148,7 @@ the **src/Model/Table/ArticlesTable.php** file and add the following::
 
     class ArticlesTable extends Table
     {
-        public function initialize(array $config)
+        public function initialize(array $config): void
         {
             $this->addBehavior('Timestamp');
             // Just add the belongsTo relation with CategoriesTable
@@ -177,8 +177,8 @@ read if you want re-familiarize yourself with how CakePHP works.
 .. note::
     If you are on Windows remember to use \\ instead of /.
 
-You'll need to edit the following in **src/Template/Categories/add.ctp**
-and **src/Template/Categories/edit.ctp**::
+You'll need to edit the following in **templates/Categories/add.php**
+and **templates/Categories/edit.php**::
 
     echo $this->Form->control('parent_id', [
         'options' => $parentCategories,
@@ -217,7 +217,7 @@ for both the ``lft`` and ``rght`` columns in your CategoriesTable model::
     {
         $validator
             ->add('id', 'valid', ['rule' => 'numeric'])
-            ->allowEmpty('id', 'create');
+            ->allowEmptyString('id', 'create');
 
         $validator
             ->add('lft', 'valid', ['rule' => 'numeric'])
@@ -253,7 +253,7 @@ the tree::
             $categories = $this->Categories->find()
                 ->order(['lft' => 'ASC']);
             $this->set(compact('categories'));
-            $this->set('_serialize', ['categories']);
+            $this->viewBuilder()->setOption('serialize', ['categories']);
         }
 
         public function moveUp($id = null)
@@ -281,7 +281,7 @@ the tree::
         }
     }
 
-In **src/Template/Categories/index.ctp** replace the existing content with::
+In **templates/Categories/index.php** replace the existing content with::
 
     <div class="actions large-2 medium-3 columns">
         <h3><?= __('Actions') ?></h3>
@@ -337,19 +337,16 @@ it::
 
     namespace App\Controller;
 
-    // Prior to 3.6 use Cake\Network\Exception\NotFoundException
     use Cake\Http\Exception\NotFoundException;
 
     class ArticlesController extends AppController
     {
-
         // ...
 
         public function add()
         {
-            $article = $this->Articles->newEntity();
+            $article = $this->Articles->newEmptyEntity();
             if ($this->request->is('post')) {
-                // Prior to 3.4.0 $this->request->data() was used.
                 $article = $this->Articles->patchEntity($article, $this->request->getData());
                 if ($this->Articles->save($article)) {
                     $this->Flash->success(__('Your article has been saved.'));
@@ -373,7 +370,7 @@ The article add file should look something like this:
 
 .. code-block:: php
 
-    <!-- File: src/Template/Articles/add.ctp -->
+    <!-- File: templates/Articles/add.php -->
 
     <h1>Add Article</h1>
     <?php

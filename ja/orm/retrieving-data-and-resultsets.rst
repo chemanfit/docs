@@ -289,8 +289,8 @@ join でつながっている関連テーブルからリストのデータを生
     // Authors の中で、エンティティーは displayFild として使用するために仮想フィールドを作成
     protected function _getLabel()
     {
-        return $this->_properties['first_name'] . ' ' . $this->_properties['last_name']
-          . ' / ' . __('User ID %s', $this->_properties['user_id']);
+        return $this->_fields['first_name'] . ' ' . $this->_fields['last_name']
+          . ' / ' . __('User ID %s', $this->_fields['user_id']);
     }
 
 この例は、Author エンティティーの ``_getLabel()``
@@ -368,7 +368,8 @@ fineder メソッドは、あなたが作成したい finder の名前が ``Foo`
     }
 
     // コントローラーやテーブルのメソッド内で
-    $articles = TableRegistry::get('Articles');
+    // Prior to 3.6 use TableRegistry::get('Articles')
+    $articles = TableRegistry::getTableLocator()->get('Articles');
     $query = $articles->find('ownedBy', ['user' => $userEntity]);
 
 Finder メソッドはクエリーを必要応じて変更したり、 ``$options`` を使うことで関連するアプリケーションの
@@ -377,7 +378,8 @@ Finder の 'stack' (重ね呼び) もまた、複雑なクエリーを難なく�
 'published' と 'recent' の両方の Finder を持っているとすると、次のようになります。 ::
 
     // コントローラーやテーブルのメソッド内で
-    $articles = TableRegistry::get('Articles');
+    // Prior to 3.6 use TableRegistry::get('Articles')
+    $articles = TableRegistry::getTableLocator()->get('Articles');
     $query = $articles->find('published')->find('recent');
 
 ここまではいずれも、テーブルクラスの Finder メソッドを例に見てきましたが、Finder メソッドは
@@ -385,6 +387,14 @@ Finder の 'stack' (重ね呼び) もまた、複雑なクエリーを難なく�
 
 フェッチ後に結果を変更する必要があるなら、 :ref:`map-reduce` 機能を使って結果を変更してください。
 map reduce 機能は、旧バージョンの CakePHP にあった 'afterFind' コールバックに代わるものです。
+
+.. note::
+
+    **config** 配列に公開された引数を渡す
+    ``$products->find('sizes', ['large', 'medium'])`` と、
+    カスタム Finder をチェーンするときに予期しない結果が生じる可能性があります。
+    常にオプションを連想配列として渡してください。
+    ``$products->find('sizes', ['values' => ['large', 'medium']])``
 
 .. _dynamic-finders:
 
@@ -401,7 +411,8 @@ CakePHP の ORM は動的に構築する Finder メソッドを提供します�
     $query = $this->Users->findAllByUsername('joebob');
 
     // テーブルメソッドの中
-    $users = TableRegistry::get('Users');
+    // Prior to 3.6 use TableRegistry::get('Users')
+    $users = TableRegistry::getTableLocator()->get('Users');
     // 下記の２つは同じ
     $query = $users->findByUsername('joebob');
     $query = $users->findAllByUsername('joebob');
@@ -533,12 +544,14 @@ CakePHP では 'contain' メソッドを使って関連データのイーガー�
 contain に条件を渡す
 --------------------
 
-``contain()`` を使う際、関連によって返される列を限定し、条件によってフィルターすることができます。 ::
+``contain()`` を使う際、関連によって返される列を限定し、条件によってフィルターすることができます。
+条件を指定するには、第１引数としてクエリーオブジェクト
+``\Cake\ORM\Query`` を受け取る無名関数を渡します。 ::
 
     // コントローラーやテーブルのメソッド内で
     // 3.5.0 より前は、 contain(['Comments' => function () { ... }]) を使用
 
-    $query = $articles->find()->contain('Comments', function ($q) {
+    $query = $articles->find()->contain('Comments', function (Query $q) {
         return $q
             ->select(['body', 'author_id'])
             ->where(['Comments.approved' => true]);
@@ -547,7 +560,7 @@ contain に条件を渡す
 これは、またコントローラーレベルでページネーションが働きます。 ::
 
     $this->paginate['contain'] = [
-        'Comments' => function (\Cake\ORM\Query $query) {
+        'Comments' => function (Query $query) {
             return $query->select(['body', 'author_id'])
             ->where(['Comments.approved' => true]);
         }
@@ -563,7 +576,7 @@ contain に条件を渡す
 
     $query = $articles->find()->contain([
         'Comments',
-        'Authors.Profiles' => function ($q) {
+        'Authors.Profiles' => function (Query $q) {
             return $q->where(['Profiles.is_published' => true]);
         }
     ]);
@@ -575,7 +588,7 @@ contain に条件を渡す
 それらを使うことができます。 ::
 
     // すべての article を取り出すが、承認され (approved)、人気のある (popular) ものだけに限定する
-    $query = $articles->find()->contain('Comments', function ($q) {
+    $query = $articles->find()->contain('Comments', function (Query $q) {
         return $q->find('approved')->find('popular');
     });
 
@@ -592,7 +605,7 @@ contain に条件を渡す
     $query = $articles->find()->contain([
         'Authors' => [
             'foreignKey' => false,
-            'queryBuilder' => function ($q) {
+            'queryBuilder' => function (Query $q) {
                 return $q->where(...); // フィルターのための完全な条件
             }
         ]
@@ -613,7 +626,7 @@ contain に条件を渡す
     $query->select(['id', 'title'])
         ->contain(['Comments', 'Tags'])
         ->enableAutoFields(true) // 3.4.0 より前は autoFields(true) を使用
-        ->contain(['Users' => function($q) {
+        ->contain(['Users' => function(Query $q) {
             return $q->autoFields(true);
         }]);
 
@@ -867,6 +880,9 @@ leftJoinWith を使う
 
 関連データの戦略を永続的にしたいなら次のようにできます。 ::
 
+    $articles->Comments->setStrategy('subquery');
+
+    // 3.4.0 より前は
     $articles->Comments->strategy('subquery');
 
 関連をレイジーロード(Lazy Load)する
@@ -928,7 +944,8 @@ serialize が簡単にできるだけでなく、結果セットは 'Collection'
 使えます。たとえば、記事 (Article) のコレクションにあるタグ (Tag) をユニークに取り出すことができます。 ::
 
     // コントローラーやテーブルのメソッド内で
-    $articles = TableRegistry::get('Articles');
+    // Prior to 3.6 use TableRegistry::get('Articles')
+    $articles = TableRegistry::getTableLocator()->get('Articles');
     $query = $articles->find()->contain(['Tags']);
 
     $reducer = function ($output, $value) {
@@ -950,7 +967,8 @@ serialize が簡単にできるだけでなく、結果セットは 'Collection'
     });
 
     // 結果のプロパティーから連想配列を作成する
-    $articles = TableRegistry::get('Articles');
+    // Prior to 3.6 use TableRegistry::get('Articles')
+    $articles = TableRegistry::getTableLocator()->get('Articles');
     $results = $articles->find()->contain(['Authors'])->all();
 
     $authorList = $results->combine('id', 'author.name');

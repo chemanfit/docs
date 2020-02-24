@@ -44,7 +44,7 @@ Composer Вы с легкостью установите фреймворк че
 установочной папки, чтобы развернуть базовую структуру приложения CakePHP
 в папку **bookmarker**::
 
-    php composer.phar create-project --prefer-dist cakephp/app bookmarker
+    php composer.phar create-project --prefer-dist cakephp/app:4.* bookmarker
 
 Преимущество при использовании Composer заключается в том, что он
 автоматически произведет все необходимые настройки по правам доступа и создаст
@@ -105,7 +105,9 @@ Composer Вы с легкостью установите фреймворк че
 Менеджера Закладок. Если вы еще этого не сделали - создайте пустую базу данных
 для работы вашего приложения, с любым удобным именем, например
 ``cake_bookmarks``. Вы можете выполнить следующий SQL-запрос, для создания
-необходимых таблиц::
+необходимых таблиц:
+
+.. code-block:: mysql
 
     CREATE TABLE users (
         id INT AUTO_INCREMENT PRIMARY KEY,

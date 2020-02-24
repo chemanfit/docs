@@ -77,9 +77,10 @@ Database Conventions
 
 Table names corresponding to CakePHP models are plural and underscored. For
 example ``users``, ``article_categories``, and ``user_favorite_pages``
-respectively.
+respectively. Table name whose name contains multiple words should only
+pluralize the last word e.g.  ``article_categories``.
 
-Field/Column names with two or more words are underscored: ``first_name``.
+Column names with two or more words are underscored e.g. ``first_name``.
 
 Foreign keys in hasMany, belongsTo/hasOne relationships are recognized by
 default as the (singular) name of the related table followed by ``_id``. So if
@@ -117,10 +118,10 @@ View Conventions
 
 View template files are named after the controller functions they display, in an
 underscored form. The ``viewAll()`` function of the ``ArticlesController`` class
-will look for a view template in **src/Template/Articles/view_all.ctp**.
+will look for a view template in **templates/Articles/view_all.php**.
 
 The basic pattern is
-**src/Template/Controller/underscored_function_name.ctp**.
+**templates/Controller/underscored_function_name.php**.
 
 .. note::
 
@@ -131,6 +132,26 @@ The basic pattern is
     rules. See the documentation about :doc:`/core-libraries/inflector` for more
     information.
 
+Plugins Conventions
+===================
+
+It is useful to prefix a CakePHP plugin with "cakephp-" in the package name.
+This makes the name semantically related on the framework it depends on.
+
+Do **not** use the CakePHP namespace (cakephp) as vendor name as this is
+reserved to CakePHP owned plugins.  The convention is to use lowercase letters
+and dashes as separator::
+
+    // Bad
+    cakephp/foo-bar
+
+    // Good
+    your-name/cakephp-foo-bar
+
+See `awesome list recommendations
+<https://github.com/FriendsOfCake/awesome-cakephp/blob/master/CONTRIBUTING.md#tips-for-creating-cakephp-plugins>`__
+for details.
+
 Summarized
 ==========
 
@@ -138,12 +159,12 @@ By naming the pieces of your application using CakePHP conventions, you gain
 functionality without the hassle and maintenance tethers of configuration.
 Here's a final example that ties the conventions together:
 
--  Database table: "articles"
+-  Database table: "articles", "article_categories"
 -  Table class: ``ArticlesTable``, found at **src/Model/Table/ArticlesTable.php**
 -  Entity class: ``Article``, found at **src/Model/Entity/Article.php**
 -  Controller class: ``ArticlesController``, found at
    **src/Controller/ArticlesController.php**
--  View template, found at **src/Template/Articles/index.ctp**
+-  View template, found at **templates/Articles/index.php**
 
 Using these conventions, CakePHP knows that a request to
 ``http://example.com/articles`` maps to a call on the ``index()`` function of the
@@ -152,25 +173,77 @@ automatically tied to the 'articles' table in the database), and renders to a
 file. None of these relationships have been configured by any means other than
 by creating classes and files that you'd need to create anyway.
 
++------------+-----------------------------+----------------------------------+------------------------------------------------------+
+| Example    | articles                    | articles_categories              |                                                      |
++------------+-----------------------------+----------------------------------+------------------------------------------------------+
+| Database   | articles                    | articles_categories              | Table names corresponding to CakePHP                 |
+| Table      |                             |                                  | models are plural and underscored.                   |
++------------+-----------------------------+----------------------------------+------------------------------------------------------+
+| File       | ArticlesController.php      | ArticlesCategoriesController.php |                                                      |
++------------+-----------------------------+----------------------------------+------------------------------------------------------+
+| Table      | ArticlesTable.php           | ArticlesCategoriesTable.php      | Table class names are plural,                        |
+|            |                             |                                  | PascalCased and end in Table                         |
++------------+-----------------------------+----------------------------------+------------------------------------------------------+
+| Entity     | Articles.php                | ArticlesCategories.php           | Entity class names are singular,                     |
+|            |                             |                                  | PascalCased: Article and ArticleCategory             |
++------------+-----------------------------+----------------------------------+------------------------------------------------------+
+| Class      | ArticlesController          | ArticlesCategoriesController     |                                                      |
++------------+-----------------------------+----------------------------------+------------------------------------------------------+
+| Controller | ArticlesController          | ArticlesCategoriesController     | Plural, PascalCased, end in Controller               |
++------------+-----------------------------+----------------------------------+------------------------------------------------------+
+| Behavior   | ArticlesBehavior.php        | ArticlesCategoriesBehavior.php   |                                                      |
++------------+-----------------------------+----------------------------------+------------------------------------------------------+
+| View       | ArticlesView.php            | ArticlesCategoriesView.php       | View template files are named after                  |
+|            |                             |                                  | the controller functions they                        |
+|            |                             |                                  | display, in an underscored form                      |
++------------+-----------------------------+----------------------------------+------------------------------------------------------+
+| Helper     | ArticlesHelper.php          | ArticlesCategoriesHelper.php     |                                                      |
++------------+-----------------------------+----------------------------------+------------------------------------------------------+
+| Component  | ArticlesComponent.php       | ArticlesCategoriesComponent.php  |                                                      |
++------------+-----------------------------+----------------------------------+------------------------------------------------------+
+| Plugin     | Bad: cakephp/articles       | cakephp/articles-categories      | Useful to prefix a CakePHP plugin with "cakephp-"    |
+|            | Good: you/cakephp-articles  | you/cakephp-articles-categories  | in the package name. Do not use the CakePHP          |
+|            |                             |                                  | namespace (cakephp) as vendor name as this is        |
+|            |                             |                                  | reserved to CakePHP owned plugins. The convention    |
+|            |                             |                                  | is to use lowercase letters and dashes as separator. |
+|            |                             |                                  |                                                      |
++------------+-----------------------------+----------------------------------+------------------------------------------------------+
+| Each file would be located in the appropriate folder/namespace in your app folder.                                                 |
++------------+-----------------------------+----------------------------------+------------------------------------------------------+
+
+
+Database Convention Summary
+===========================
++-----------------+--------------------------------------------------------------+
+| Foreign keys    | Relationships are recognized by default as the               |
+|                 | (singular) name of the related table followed by ``_id``.    |
+| hasMany         | Users hasMany Articles, ``articles`` table will refer        |
+| belongsTo/      | to the ``users`` table via a ``user_id`` foreign key.        |
+| hasOne          |                                                              |
+| BelongsToMany   |                                                              |
+|                 |                                                              |
++-----------------+--------------------------------------------------------------+
+| Multiple Words  | ``article_categories`` whose name contains multiple words,   |
+|                 | the foreign key would be ``article_category_id``.            |
++-----------------+--------------------------------------------------------------+
+| Auto Increment  | In addition to using an auto-incrementing integer as         |
+|                 | primary keys, you can also use UUID columns.                 |
+|                 | CakePHP will create UUID values automatically                |
+|                 | using (:php:meth:`Cake\\Utility\\Text::uuid()`)              |
+|                 | whenever you save new records using the                      |
+|                 | ``Table::save()`` method.                                    |
++-----------------+--------------------------------------------------------------+
+| Join tables     | Should be named after the model tables they will join        |
+|                 | or the bake command won't work, arranged in alphabetical     |
+|                 | order (``articles_tags`` rather than ``tags_articles``).     |
+|                 | Additional columns on the junction table you should create   |
+|                 | a separate entity/table class for that table.                |
++-----------------+--------------------------------------------------------------+
+
 Now that you've been introduced to CakePHP's fundamentals, you might try a run
 through the :doc:`/tutorials-and-examples/cms/installation` to see how things fit
 together.
 
-Plugins Conventions
-===================
-It is useful to prefix a CakePHP plugin with "cakephp-" in the package name.
-This makes the name semantically related on the framework it depends on.
-
-Do **not** use the CakePHP namespace (cakephp) as vendor name as this is reserved to CakePHP owned plugins.
-The convention is to use lowercase letters and dashes as separator.
-
-    // Bad
-    cakephp/foo-bar
-    
-    // Good
-    your-name/cakephp-foo-bar
-
-See `awesome list recommendations <https://github.com/FriendsOfCake/awesome-cakephp/blob/master/CONTRIBUTING.md#tips-for-creating-cakephp-plugins>`__ for details.
 
 .. meta::
     :title lang=en: CakePHP Conventions

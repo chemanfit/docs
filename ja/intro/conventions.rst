@@ -22,8 +22,8 @@ protected メソッドや private メソッドはルーティングしてアク�
 ~~~~~~~~~~~~~~~~~~~~~~
 
 前節の通り、ひとつの単語からなる名前のコントローラーは、簡単に小文字の URL パスにマップできます。
-例えば、 ``UsersController`` （ファイル名は 'UsersController.php'）には、
-http://example.com/users としてアクセスできます。
+例えば、 ``UsersController`` （ファイル名は **UsersController.php**）には、
+``http://example.com/users`` としてアクセスできます。
 
 複数語のコントローラーをあなたの好きなようにルーティングできますが、
 ``DashedRoute`` クラスを使用すると URL は小文字とダッシュを用いる規約であり、
@@ -72,12 +72,12 @@ CakePHP の URL とパラメーターの取り扱いに関するより詳細な�
 データベースの規約
 ==================
 
-CakePHP のモデルに対応するテーブル名は、複数形でアンダースコアー記法です。上記の例で言えば、
+CakePHP のモデルに対応するテーブル名は、複数形でアンダースコア記法です。上記の例で言えば、
 テーブル名はそれぞれ、 ``users`` 、 ``article_categories`` 、 ``user_favorite_pages``
 になります。
 
 二個以上の単語で構成されるフィールド/カラムの名前は、
-``first_name`` のようにアンダースコアー記法になります。
+``first_name`` のようにアンダースコア記法になります。
 
 hasMany, blongsTo, hasOne 中の外部キーは、デフォルトで関連するモデルの(単数形の)名前に
 ``_id`` を付けたものとして認識されます。ユーザーが記事を複数持っている (*Users hasMany Articles*)
@@ -109,11 +109,11 @@ Entity クラスの名前は単数形でパスカルケースで、サフィッ�
 ============
 
 ビューのテンプレートファイルは、それを表示するコントローラーの関数に合わせた、
-アンダースコアー記法で命名されます。
+アンダースコア記法で命名されます。
 ``ArticlesController`` クラスの ``viewAll()`` 関数は、ビューテンプレートとして、
 **src/Template/Articles/view_all.ctp** を探すことになります。
 
-基本パターンは、 **src/Template/コントローラー名/アンダースコアー記法_関数名.ctp** です。
+基本パターンは、 **src/Template/コントローラー名/アンダースコア記法_関数名.ctp** です。
 
 .. note::
 
@@ -136,13 +136,30 @@ Entity クラスの名前は単数形でパスカルケースで、サフィッ�
    **src/Controller/ArticlesController.php**
 -  ビューテンプレートの場所は **src/Template/Articles/index.ctp**
 
-これらの規約により、CakePHP は、 http://example.com/articles/ へのリクエストを、
+これらの規約により、CakePHP は、 ``http://example.com/articles`` へのリクエストを、
 ArticlesController の ``index()`` 関数にマップします。そして、Articles モデルが自動的に使える
 （データベースの 'articles' テーブルに自動的に接続される）ようになり、表示されることになります。
 必要なクラスとファイルを作成しただけでこれらの関係が設定されています。
 
 さて、これで CakePHP の基本について一通り理解できました。物事がどう組み合わせられるかを確かめるために、
 :doc:`/tutorials-and-examples/cms/installation` を体験することができるでしょう。
+
+プラグインの規約
+===================
+CakePHP プラグインのパッケージ名にプレフィックスとして "cakephp-" を付けると便利です。
+これにより、名前が意味的にフレームワークに依存することを関連付けられます。
+
+CakePHP 所有のプラグインに予約されているため、ベンダー名として CakePHP ネームスペース（cakephp）
+を **使用しない** でください。
+規約では、小文字の文字とダッシュを区切り記号として使用します。 ::
+
+    // 悪い例
+    cakephp/foo-bar
+    
+    // 良い例
+    your-name/cakephp-foo-bar
+
+詳しくは `awesome list recommendations <https://github.com/FriendsOfCake/awesome-cakephp/blob/master/CONTRIBUTING.md#tips-for-creating-cakephp-plugins>`__ をご覧ください。
 
 .. meta::
     :title lang=ja: CakePHP の規約

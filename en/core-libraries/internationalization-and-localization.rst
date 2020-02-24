@@ -38,11 +38,11 @@ Language Files
 Translations can be made available by using language files stored in the
 application. The default format for CakePHP translation files is the
 `Gettext <http://en.wikipedia.org/wiki/Gettext>`_ format. Files need to be
-placed under **src/Locale/** and within this directory, there should be a
+placed under **resources/locales/** and within this directory, there should be a
 subfolder for each language the application needs to support::
 
-    /src
-        /Locale
+    /resources
+        /locales
             /en_US
                 default.po
             /en_GB
@@ -57,11 +57,11 @@ grouping of translation messages. When no group is used, then the default group
 is selected.
 
 The core strings messages extracted from the CakePHP library can be stored
-separately in a file named **cake.po** in **src/Locale/**.
+separately in a file named **cake.po** in **resources/locales/**.
 The `CakePHP localized library <https://github.com/cakephp/localized>`_ houses
 translations for the client-facing translated strings in the core (the cake
 domain). To use these files, link or copy them into their expected location:
-**src/Locale/<locale>/cake.po**. If your locale is incomplete or incorrect,
+**resources/locales/<locale>/cake.po**. If your locale is incomplete or incorrect,
 please submit a PR in this repository to fix it.
 
 Plugins can also contain translation files, the convention is to use the
@@ -69,16 +69,16 @@ Plugins can also contain translation files, the convention is to use the
 messages::
 
     MyPlugin
-        /src
-            /Locale
+        /resources
+            /locales
                 /fr
                     my_plugin.po
                 /de
                     my_plugin.po
 
-Translation folders can either be the two letter ISO code of the language or the
-full locale name such as ``fr_FR``, ``es_AR``, ``da_DK`` which contains both the
-language and the country where it is spoken.
+Translation folders can be the two or three letter ISO code of the language or
+the full locale name such as ``fr_FR``, ``es_AR``, ``da_DK`` which contains
+both the language and the country where it is spoken.
 
 An example translation file could look like this:
 
@@ -95,7 +95,7 @@ Extract Pot Files with I18n Shell
 
 To create the pot files from `__()` and other internationalized types of
 messages that can be found in the application code, you can use the i18n shell.
-Please read the :doc:`following chapter </console-and-shells/i18n-shell>` to
+Please read the :doc:`following chapter </console-commands/i18n>` to
 learn more.
 
 Setting the Default Locale
@@ -121,7 +121,6 @@ To change the language for translated strings you can call this method::
 
     use Cake\I18n\I18n;
 
-    // Prior to 3.5 use I18n::locale()
     I18n::setLocale('de_DE');
 
 This will also change how numbers and dates are formatted when using one of the
@@ -147,7 +146,7 @@ domain::
 
     If you want to translate your plugins and they're namespaced, you must name
     your domain string ``Namespace/PluginName``. But the related language file
-    will become ``plugins/Namespace/PluginName/src/Locale/plugin_name.po``
+    will become ``plugins/Namespace/PluginName/resources/locales/plugin_name.po``
     inside your plugin folder.
 
 Sometimes translations strings can be ambiguous for people translating them.
@@ -412,7 +411,6 @@ minimum that is required for creating a translator is that the loader function
 should return a ``Aura\Intl\Package`` object. Once the code is in place you can
 use the translation functions as usual::
 
-    // Prior to 3.5 use I18n::locale()
     I18n::setLocale('fr_FR');
     __d('animals', 'Dog'); // Returns "Chien"
 
@@ -424,8 +422,7 @@ For example, you can still use **.po** files, but loaded from another location::
 
     use Cake\I18n\MessagesFileLoader as Loader;
 
-    // Load messages from src/Locale/folder/sub_folder/filename.po
-    // Prior to 3.5 use translator()
+    // Load messages from resources/locales/folder/sub_folder/filename.po
     I18n::setTranslator(
         'animals',
         new Loader('filename', 'folder/sub_folder', 'po'),
@@ -444,7 +441,6 @@ class::
 
     class YamlFileParser
     {
-
         public function parse($file)
         {
             return yaml_parse_file($file);
@@ -453,7 +449,7 @@ class::
 
 The file should be created in the **src/I18n/Parser** directory of your
 application. Next, create the translations file under
-**src/Locale/fr_FR/animals.yaml**
+**resources/locales/fr_FR/animals.yaml**
 
 .. code-block:: yaml
 
@@ -465,7 +461,6 @@ And finally, configure the translation loader for the domain and locale::
 
     use Cake\I18n\MessagesFileLoader as Loader;
 
-    // Prior to 3.5 use translator()
     I18n::setTranslator(
         'animals',
         new Loader('animals', 'fr_FR', 'yaml'),
@@ -489,7 +484,7 @@ any language from an external service::
 
     I18n::config('default', function ($domain, $locale) {
         $locale = Locale::parseLocale($locale);
-        $language = $locale['language'];
+        $lang = $locale['language'];
         $messages = file_get_contents("http://example.com/translations/$lang.json");
 
         return new Package(
@@ -510,9 +505,6 @@ the ``_fallback`` package::
     I18n::config('_fallback', function ($domain, $locale) {
         // Custom code that yields a package here.
     });
-
-.. versionadded:: 3.4.0
-    Replacing the ``_fallback`` loader was added in 3.4.0
 
 Plurals and Context in Custom Translators
 -----------------------------------------
@@ -578,7 +570,6 @@ the current locale setting and use the right classes::
     use Cake\I18n\Time;
     use Cake\I18n\Number;
 
-    // Prior to 3.5 use I18n::locale()
     I18n::setLocale('fr-FR');
 
     $date = new Time('2015-04-05 23:00:00');
@@ -601,7 +592,7 @@ Parsing Localized Datetime Data
 
 When accepting localized data from the request, it is nice to accept datetime
 information in a user's localized format. In a controller, or
-:doc:`/development/dispatch-filters` you can configure the Date, Time, and
+:doc:`/controllers/middleware` you can configure the Date, Time, and
 DateTime types to parse localized formats::
 
     use Cake\Database\Type;
@@ -621,7 +612,7 @@ The default parsing format is the same as the default string format.
 Automatically Choosing the Locale Based on Request Data
 =======================================================
 
-By using the ``LocaleSelectorFilter`` in your application, CakePHP will
+By using the ``LocaleSelectorMiddleware`` in your application, CakePHP will
 automatically set the locale based on the current user::
 
     // in src/Application.php
@@ -634,14 +625,12 @@ automatically set the locale based on the current user::
         $middleware->add(new LocaleSelectorMiddleware(['en_US', 'fr_FR']));
     }
 
-    // Prior to 3.3.0, use the DispatchFilter
-    // in config/bootstrap.php
     DispatcherFactory::add('LocaleSelector');
 
     // Restrict the locales to only en_US, fr_FR
     DispatcherFactory::add('LocaleSelector', ['locales' => ['en_US', 'fr_FR']]);
 
-The ``LocaleSelectorFilter`` will use the ``Accept-Language`` header to
+The ``LocaleSelectorMiddleware`` will use the ``Accept-Language`` header to
 automatically set the user's preferred locale. You can use the locale list
 option to restrict which locales will automatically be used.
 

@@ -21,12 +21,13 @@ Quick Tour
 
 This section will teach you by example the most common uses of the CakePHP
 Router. Typically you want to display something as a landing page, so you add
-this to your **routes.php** file::
+this to your **config/routes.php** file::
 
+    use Cake\Routing\RouteBuilder;
     use Cake\Routing\Router;
 
     // Using a scoped route builder.
-    Router::scope('/', function ($routes) {
+    Router::scope('/', function (RouteBuilder $routes) {
         $routes->connect('/', ['controller' => 'Articles', 'action' => 'index']);
     });
 
@@ -50,20 +51,19 @@ prevent people from trying to access URLs looking like ``/articles/foobar``. If
 you wish, you can restrict some parameters to conform to a regular expression::
 
     $routes->connect(
-        '/articles/:id',
+        '/articles/{id}',
         ['controller' => 'Articles', 'action' => 'view'],
     )
     ->setPatterns(['id' => '\d+'])
     ->setPass(['id']);
 
-    // Prior to 3.5 use the options array
     $routes->connect(
-        '/articles/:id',
+        '/articles/{id}',
         ['controller' => 'Articles', 'action' => 'view'],
         ['id' => '\d+', 'pass' => ['id']]
     );
 
-The previous example changed the star matcher by a new placeholder ``:id``.
+The previous example changed the star matcher by a new placeholder ``{id}``.
 Using placeholders allows us to validate parts of the URL, in this case we used
 the ``\d+`` regular expression so that only digits are matched. Finally, we told
 the Router to treat the ``id`` placeholder as a function argument to the
@@ -101,7 +101,7 @@ A scope defines a common path segment, and optionally route defaults. Any routes
 connected inside a scope will inherit the path/defaults from their wrapping
 scopes::
 
-    Router::scope('/blog', ['plugin' => 'Blog'], function ($routes) {
+    Router::scope('/blog', ['plugin' => 'Blog'], function (RouteBuilder $routes) {
         $routes->connect('/', ['controller' => 'Articles']);
     });
 
@@ -111,7 +111,7 @@ The above route would match ``/blog/`` and send it to
 The application skeleton comes with a few routes to get you started. Once you've
 added your own routes, you can remove the default routes if you don't need them.
 
-.. index:: :controller, :action, :plugin
+.. index:: {controller}, {action}, {plugin}
 .. index:: greedy star, trailing star
 .. _connecting-routes:
 .. _routes-configuration:
@@ -127,7 +127,7 @@ some routes we'll use the ``scope()`` method::
     // In config/routes.php
     use Cake\Routing\Route\DashedRoute;
 
-    Router::scope('/', function ($routes) {
+    Router::scope('/', function (RouteBuilder $routes) {
         // Connect the generic fallback routes.
         $routes->fallbacks(DashedRoute::class);
     });
@@ -158,18 +158,16 @@ as a destination string. A few examples of route targets are::
 
     // Array target to an application controller
     $routes->connect(
-        '/users/view/*
+        '/users/view/*',
         ['controller' => 'Users', 'action' => 'view']
     );
-    // String target to an application controller. requires >=3.6.0
     $routes->connect('/users/view/*', 'Users::view');
 
     // Array target to a prefixed plugin controller
     $routes->connect(
         '/admin/cms/articles',
-        ['prefix' => 'admin', 'plugin' => 'Cms', controller' => 'Articles', 'action' => 'index']
+        ['prefix' => 'Admin', 'plugin' => 'Cms', 'controller' => 'Articles', 'action' => 'index']
     );
-    // String target to a prefixed plugin controller. requires >=3.6.0
     $routes->connect('/admin/cms/articles', 'Cms.Admin/Articles::index');
 
 The first route we connect matches URLs starting with ``/users/view`` and maps
@@ -196,9 +194,6 @@ Some example string targets are::
 
     // Prefixed plugin controller
     Vendor/Cms.Management/Admin/Articles::view
-
-.. versionadded:: 3.6.0
-    String based route targets were added.
 
 Earlier we used the greedy star (``/*``) to capture additional path segments,
 there is also the trailing star (``/**``). Using a trailing double star,
@@ -227,25 +222,25 @@ different categories of customers, you might consider creating a route. This
 allows you to link to ``/government`` rather than ``/pages/display/5``.
 
 A common use for routing is to rename controllers and their actions. Instead of
-accessing our users controller at ``/users/some_action/5``, we'd like to be able
-to access it through ``/cooks/some_action/5``. The following route takes care of
+accessing our users controller at ``/users/some-action/5``, we'd like to be able
+to access it through ``/cooks/some-action/5``. The following route takes care of
 that::
 
     $routes->connect(
-        '/cooks/:action/*', ['controller' => 'Users']
+        '/cooks/{action}/*', ['controller' => 'Users']
     );
 
 This is telling the Router that any URL beginning with ``/cooks/`` should be
 sent to the ``UsersController``. The action called will depend on the value of
-the ``:action`` parameter. By using :ref:`route-elements`, you can create
+the ``{action}`` parameter. By using :ref:`route-elements`, you can create
 variable routes, that accept user input or variables. The above route also uses
 the greedy star.  The greedy star indicates that this route should accept any
 additional positional arguments given. These arguments will be made available in
 the :ref:`passed-arguments` array.
 
 When generating URLs, routes are used too. Using
-``['controller' => 'Users', 'action' => 'some_action', 5]`` as
-a URL will output ``/cooks/some_action/5`` if the above route is the
+``['controller' => 'Users', 'action' => 'some-action', 5]`` as
+a URL will output ``/cooks/some-action/5`` if the above route is the
 first match found.
 
 The routes we've connected so far will match any HTTP verb. If you are building
@@ -255,14 +250,14 @@ specific HTTP verbs simpler::
 
     // Create a route that only responds to GET requests.
     $routes->get(
-        '/cooks/:id',
+        '/cooks/{id}',
         ['controller' => 'Users', 'action' => 'view'],
         'users:view'
     );
 
     // Create a route that only responds to PUT requests
     $routes->put(
-        '/cooks/:id',
+        '/cooks/{id}',
         ['controller' => 'Users', 'action' => 'update'],
         'users:update'
     );
@@ -282,9 +277,6 @@ will go to the 'update' action. There are HTTP helper methods for:
 All of these methods return the route instance allowing you to leverage the
 :ref:`fluent setters <route-fluent-methods>` to further configure your route.
 
-.. versionadded:: 3.5.0
-    The HTTP verb helper methods were added.
-
 .. _route-elements:
 
 Route Elements
@@ -300,48 +292,46 @@ not. If you choose to not provide a regular expression, any non ``/`` character
 will be treated as part of the parameter::
 
     $routes->connect(
-        '/:controller/:id',
+        '/{controller}/{id}',
         ['action' => 'view']
     )->setPatterns(['id' => '[0-9]+']);
 
-    // Prior to 3.5 use the options array
     $routes->connect(
-        '/:controller/:id',
+        '/{controller}/{id}',
         ['action' => 'view'],
         ['id' => '[0-9]+']
     );
 
 The above example illustrates how to create a quick way to view
 models from any controller by crafting a URL that looks like
-``/controllername/:id``. The URL provided to ``connect()`` specifies two
-route elements: ``:controller`` and ``:id``. The ``:controller`` element
+``/controllername/{id}``. The URL provided to ``connect()`` specifies two
+route elements: ``{controller}`` and ``{id}``. The ``{controller}`` element
 is a CakePHP default route element, so the router knows how to match and
-identify controller names in URLs. The ``:id`` element is a custom
+identify controller names in URLs. The ``{id}`` element is a custom
 route element, and must be further clarified by specifying a
 matching regular expression in the third parameter of ``connect()``.
 
 CakePHP does not automatically produce lowercased and dashed URLs when using the
-``:controller`` parameter. If you need this, the above example could be
+``{controller}`` parameter. If you need this, the above example could be
 rewritten like so::
 
     use Cake\Routing\Route\DashedRoute;
 
     // Create a builder with a different route class.
-    $routes->scope('/', function ($routes) {
+    $routes->scope('/', function (RouteBuilder $routes) {
         $routes->setRouteClass(DashedRoute::class);
-        $routes->connect('/:controller/:id', ['action' => 'view'])
+        $routes->connect('/{controller}/{id}', ['action' => 'view'])
             ->setPatterns(['id' => '[0-9]+']);
 
-        // Prior to 3.5 use options array
         $routes->connect(
-            '/:controller/:id',
+            '/{controller}/{id}',
             ['action' => 'view'],
             ['id' => '[0-9]+']
         );
     });
 
-The ``DashedRoute`` class will make sure that the ``:controller`` and
-``:plugin`` parameters are correctly lowercased and dashed.
+The ``DashedRoute`` class will make sure that the ``{controller}`` and
+``{plugin}`` parameters are correctly lowercased and dashed.
 
 If you need lowercased and underscored URLs while migrating from a CakePHP
 2.x application, you can instead use the ``InflectedRoute`` class.
@@ -361,22 +351,20 @@ controller. For example, to map all URLs to actions of the ``home`` controller,
 e.g have URLs like ``/demo`` instead of ``/home/demo``, you can do the
 following::
 
-    $routes->connect('/:action', ['controller' => 'Home']);
+    $routes->connect('/{action}', ['controller' => 'Home']);
 
 If you would like to provide a case insensitive URL, you can use regular
 expression inline modifiers::
 
-    // Prior to 3.5 use the options array instead of setPatterns()
     $routes->connect(
-        '/:userShortcut',
+        '/{userShortcut}',
         ['controller' => 'Teachers', 'action' => 'profile', 1],
     )->setPatterns(['userShortcut' => '(?i:principal)']);
 
 One more example, and you'll be a routing pro::
 
-    // Prior to 3.5 use the options array instead of setPatterns()
     $routes->connect(
-        '/:controller/:year/:month/:day',
+        '/{controller}/{year}/{month}/{day}',
         ['action' => 'index']
     )->setPatterns([
         'year' => '[12][0-9]{3}',
@@ -400,17 +388,6 @@ Once defined, this route will match ``/articles/2007/02/01``,
 ``/articles/2004/11/16``, handing the requests to
 the ``index()`` actions of their respective controllers, with the date
 parameters in ``$this->request->getParam()``.
-
-As of 3.6.0 you can use ``{var}`` for route elements instead of ``:var``. This
-new parameter style enables route elements to be embedded in non-capturing
-blocks. For example::
-
-    $routes->connect(
-        '/images/resize/{id}/{width}x{height}',
-        ['controller' => 'Images', 'action' => 'view']
-    );
-
-Would be impossible to define using ``:var`` style placeholders.
 
 Reserved Route Elements
 -----------------------
@@ -451,7 +428,7 @@ the route. These methods replace many of the keys in the ``$options`` parameter
 of ``connect()``::
 
     $routes->connect(
-        '/:lang/articles/:slug',
+        '/{lang}/articles/{slug}',
         ['controller' => 'Articles', 'action' => 'view'],
     )
     // Allow GET and POST requests.
@@ -475,9 +452,6 @@ of ``connect()``::
     // Set lang to be a persistent parameter
     ->setPersist(['lang']);
 
-.. versionadded:: 3.5.0
-    Fluent builder methods were added in 3.5.0
-
 Passing Parameters to Action
 ----------------------------
 
@@ -493,14 +467,14 @@ functions::
     }
 
     // routes.php
-    Router::scope('/', function ($routes) {
+    Router::scope('/', function (RouteBuilder $routes) {
         $routes->connect(
-            '/blog/:id-:slug', // E.g. /blog/3-CakePHP_Rocks
+            '/blog/{id}-{slug}', // E.g. /blog/3-CakePHP_Rocks
             ['controller' => 'Blogs', 'action' => 'view']
         )
         // Define the route elements in the route template
         // to pass as function arguments. Order matters since this
-        // will simply map ":id" to $articleId in your action
+        // will simply map "{id}" to $articleId in your action
         ->setPass(['id', 'slug'])
         // Define a pattern that `id` must match.
         ->setPatterns([
@@ -511,7 +485,7 @@ functions::
 Now thanks to the reverse routing capabilities, you can pass in the URL array
 like below and CakePHP will know how to form the URL as defined in the routes::
 
-    // view.ctp
+    // view.php
     // This will return a link to /blog/3-CakePHP_Rocks
     echo $this->Html->link('CakePHP Rocks', [
         'controller' => 'Blog',
@@ -545,7 +519,7 @@ option can be used in reverse routing to identify the route you want to use::
         ['_name' => 'login']
     );
 
-    // Name a verb specific route (3.5.0+)
+    // Name a verb specific route
     $routes->post(
         '/logout',
         ['controller' => 'Users', 'action' => 'logout'],
@@ -559,7 +533,7 @@ option can be used in reverse routing to identify the route you want to use::
     // with some query string args.
     $url = Router::url(['_name' => 'login', 'username' => 'jimmy']);
 
-If your route template contains any route elements like ``:controller`` you'll
+If your route template contains any route elements like ``{controller}`` you'll
 need to supply those as part of the options to ``Router::url()``.
 
 .. note::
@@ -572,7 +546,7 @@ When building named routes, you will probably want to stick to some conventions
 for the route names. CakePHP makes building up route names easier by allowing
 you to define name prefixes in each scope::
 
-    Router::scope('/api', ['_namePrefix' => 'api:'], function ($routes) {
+    Router::scope('/api', ['_namePrefix' => 'api:'], function (RouteBuilder $routes) {
         // This route's name will be `api:ping`
         $routes->get('/ping', ['controller' => 'Pings'], 'ping');
     });
@@ -580,20 +554,20 @@ you to define name prefixes in each scope::
     Router::url(['_name' => 'api:ping']);
 
     // Use namePrefix with plugin()
-    Router::plugin('Contacts', ['_namePrefix' => 'contacts:'], function ($routes) {
+    Router::plugin('Contacts', ['_namePrefix' => 'contacts:'], function (RouteBuilder $routes) {
         // Connect routes.
     });
 
     // Or with prefix()
-    Router::prefix('Admin', ['_namePrefix' => 'admin:'], function ($routes) {
+    Router::prefix('Admin', ['_namePrefix' => 'admin:'], function (RouteBuilder $routes) {
         // Connect routes.
     });
 
 You can also use the ``_namePrefix`` option inside nested scopes and it works as
 you'd expect::
 
-    Router::plugin('Contacts', ['_namePrefix' => 'contacts:'], function ($routes) {
-        $routes->scope('/api', ['_namePrefix' => 'api:'], function ($routes) {
+    Router::plugin('Contacts', ['_namePrefix' => 'contacts:'], function (RouteBuilder $routes) {
+        $routes->scope('/api', ['_namePrefix' => 'api:'], function (RouteBuilder $routes) {
             // This route's name will be `contacts:api:ping`
             $routes->get('/ping', ['controller' => 'Pings'], 'ping');
         });
@@ -604,9 +578,6 @@ you'd expect::
 
 Routes connected in named scopes will only have names added if the route is also
 named. Nameless routes will not have the ``_namePrefix`` applied to them.
-
-.. versionadded:: 3.1
-    The ``_namePrefix`` option was added in 3.1
 
 .. index:: admin routing, prefix routing
 .. _prefix-routing:
@@ -623,9 +594,10 @@ can be enabled by using the ``prefix`` scope method::
 
     use Cake\Routing\Route\DashedRoute;
 
-    Router::prefix('admin', function ($routes) {
-        // All routes here will be prefixed with `/admin`
-        // And have the prefix => admin route element added.
+    Router::prefix('Admin', function (RouteBuilder $routes) {
+        // All routes here will be prefixed with `/admin`, and
+        // have the `'prefix' => 'Admin'` route element added that
+        // will be required when generating URLs for these routes
         $routes->fallbacks(DashedRoute::class);
     });
 
@@ -636,60 +608,70 @@ controllers can be encapsulated using inheritance,
 :doc:`/controllers/components`, or traits.  Using our users example, accessing
 the URL ``/admin/users/edit/5`` would call the ``edit()`` method of our
 **src/Controller/Admin/UsersController.php** passing 5 as the first parameter.
-The view file used would be **src/Template/Admin/Users/edit.ctp**
+The view file used would be **templates/Admin/Users/edit.php**
 
 You can map the URL /admin to your ``index()`` action of pages controller using
 following route::
 
-    Router::prefix('admin', function ($routes) {
+    Router::prefix('Admin', function (RouteBuilder $routes) {
         // Because you are in the admin scope,
         // you do not need to include the /admin prefix
-        // or the admin route element.
+        // or the Admin route element.
         $routes->connect('/', ['controller' => 'Pages', 'action' => 'index']);
     });
 
 When creating prefix routes, you can set additional route parameters using
 the ``$options`` argument::
 
-    Router::prefix('admin', ['param' => 'value'], function ($routes) {
+    Router::prefix('Admin', ['param' => 'value'], function (RouteBuilder $routes) {
         // Routes connected here are prefixed with '/admin' and
         // have the 'param' routing key set.
-        $routes->connect('/:controller');
+        $routes->connect('/{controller}');
+    });
+
+Multi word prefixes are by default converted using dasherize inflection, ie ``MyPrefix``
+would be mapped to ``my-prefix`` in the URL. Make sure to set a path for such prefixes
+if you want to use a different format like for example underscoring::
+
+    Router::prefix('MyPrefix', ['path' => '/my_prefix'], function (RouteBuilder $routes) {
+        // Routes connected here are prefixed with '/my_prefix'
+        $routes->connect('/{controller}');
     });
 
 You can define prefixes inside plugin scopes as well::
 
-    Router::plugin('DebugKit', function ($routes) {
-        $routes->prefix('admin', function ($routes) {
-            $routes->connect('/:controller');
+    Router::plugin('DebugKit', function (RouteBuilder $routes) {
+        $routes->prefix('Admin', function (RouteBuilder $routes) {
+            $routes->connect('/{controller}');
         });
     });
 
-The above would create a route template like ``/debug_kit/admin/:controller``.
+The above would create a route template like ``/debug-kit/admin/{controller}``.
 The connected route would have the ``plugin`` and ``prefix`` route elements set.
 
 When defining prefixes, you can nest multiple prefixes if necessary::
 
-    Router::prefix('manager', function ($routes) {
-        $routes->prefix('admin', function ($routes) {
-            $routes->connect('/:controller');
+    Router::prefix('Manager', function (RouteBuilder $routes) {
+        $routes->prefix('Admin', function (RouteBuilder $routes) {
+            $routes->connect('/{controller}/{action}');
         });
     });
 
-The above would create a route template like ``/manager/admin/:controller``.
+The above would create a route template like ``/manager/admin/{controller}/{action}``.
 The connected route would have the ``prefix`` route element set to
-``manager/admin``.
+``Manager/Admin``.
 
 The current prefix will be available from the controller methods through
 ``$this->request->getParam('prefix')``
 
-When using prefix routes it's important to set the prefix option. Here's how to
-build this link using the HTML helper::
+When using prefix routes it's important to set the ``prefix`` option, and to
+use the same camel cased format that is used in the ``prefix()`` method. Here's
+how to build this link using the HTML helper::
 
     // Go into a prefixed route.
     echo $this->Html->link(
         'Manage articles',
-        ['prefix' => 'manager', 'controller' => 'Articles', 'action' => 'add']
+        ['prefix' => 'Manager/Admin', 'controller' => 'Articles', 'action' => 'add']
     );
 
     // Leave a prefix
@@ -704,6 +686,32 @@ build this link using the HTML helper::
 
 .. index:: plugin routing
 
+Creating Links to Prefix Routes
+-------------------------------
+
+You can create links that point to a prefix, by adding the prefix key to your
+URL array::
+
+    echo $this->Html->link(
+        'New admin todo',
+        ['prefix' => 'Admin', 'controller' => 'TodoItems', 'action' => 'create']
+    );
+
+When using nesting, you need to chain them together::
+
+    echo $this->Html->link(
+        'New todo',
+        ['prefix' => 'Admin/MyPrefix', 'controller' => 'TodoItems', 'action' => 'create']
+    );
+
+This would link to a controller with the namespace ``App\\Controller\\Admin\\MyPrefix`` and the file path
+``src/Controller/Admin/MyPrefix/TodoItemsController.php``.
+
+.. note::
+
+    The prefix is always camel cased here, even if the routing result is dashed.
+    The route itself will do the inflection if necessary.
+
 Plugin Routing
 --------------
 
@@ -712,30 +720,30 @@ Plugin Routing
 Routes for :doc:`/plugins` should be created using the ``plugin()``
 method. This method creates a new routing scope for the plugin's routes::
 
-    Router::plugin('DebugKit', function ($routes) {
-        // Routes connected here are prefixed with '/debug_kit' and
+    Router::plugin('DebugKit', function (RouteBuilder $routes) {
+        // Routes connected here are prefixed with '/debug-kit' and
         // have the plugin route element set to 'DebugKit'.
-        $routes->connect('/:controller');
+        $routes->connect('/{controller}');
     });
 
 When creating plugin scopes, you can customize the path element used with the
 ``path`` option::
 
-    Router::plugin('DebugKit', ['path' => '/debugger'], function ($routes) {
+    Router::plugin('DebugKit', ['path' => '/debugger'], function (RouteBuilder $routes) {
         // Routes connected here are prefixed with '/debugger' and
         // have the plugin route element set to 'DebugKit'.
-        $routes->connect('/:controller');
+        $routes->connect('/{controller}');
     });
 
 When using scopes you can nest plugin scopes within prefix scopes::
 
-    Router::prefix('admin', function ($routes) {
-        $routes->plugin('DebugKit', function ($routes) {
-            $routes->connect('/:controller');
+    Router::prefix('Admin', function (RouteBuilder $routes) {
+        $routes->plugin('DebugKit', function (RouteBuilder $routes) {
+            $routes->connect('/{controller}');
         });
     });
 
-The above would create a route that looks like ``/admin/debug_kit/:controller``.
+The above would create a route that looks like ``/admin/debug-kit/{controller}``.
 It would have the ``prefix``, and ``plugin`` route elements set. The
 :ref:`plugin-routes` section has more information on building plugin routes.
 
@@ -775,7 +783,7 @@ with the following router connection::
 
     use Cake\Routing\Route\DashedRoute;
 
-    Router::plugin('ToDo', ['path' => 'to-do'], function ($routes) {
+    Router::plugin('ToDo', ['path' => 'to-do'], function (RouteBuilder $routes) {
         $routes->fallbacks(DashedRoute::class);
     });
 
@@ -784,7 +792,7 @@ Matching Specific HTTP Methods
 
 Routes can match specific HTTP methods using the HTTP verb helper methods::
 
-    Router::scope('/', function($routes) {
+    Router::scope('/', function (RouteBuilder $routes) {
         // This route only matches on POST requests.
         $routes->post(
             '/reviews/start',
@@ -792,7 +800,6 @@ Routes can match specific HTTP methods using the HTTP verb helper methods::
         );
 
         // Match multiple verbs
-        // Prior to 3.5 use $options['_method'] to set method
         $routes->connect(
             '/reviews/start',
             [
@@ -819,9 +826,8 @@ Matching Specific Hostnames
 Routes can use the ``_host`` option to only match specific hosts. You can use
 the ``*.`` wildcard to match any subdomain::
 
-    Router::scope('/', function($routes) {
+    Router::scope('/', function (RouteBuilder $routes) {
         // This route only matches on http://images.example.com
-        // Prior to 3.5 use the _host option
         $routes->connect(
             '/images/default-logo.png',
             ['controller' => 'Images', 'action' => 'default']
@@ -831,7 +837,7 @@ the ``*.`` wildcard to match any subdomain::
         $routes->connect(
             '/images/old-log.png',
             ['controller' => 'Images', 'action' => 'oldLogo']
-        )->setHost('images.example.com');
+        )->setHost('*.example.com');
     });
 
 The ``_host`` option is also used in URL generation. If your ``_host`` option
@@ -851,9 +857,6 @@ parameter when generating URLs::
         'action' => 'oldLogo',
         '_host' => 'images.example.com',
     ]);
-
-.. versionadded:: 3.4.0
-    The ``_host`` option was added in 3.4.0
 
 .. index:: file extensions
 .. _file-extensions:
@@ -876,8 +879,7 @@ their scope.
 In order to restrict extensions to specific scopes, you can define them using the
 :php:meth:`Cake\\Routing\\RouteBuilder::setExtensions()` method::
 
-    Router::scope('/', function ($routes) {
-        // Prior to 3.5.0 use `extensions()`
+    Router::scope('/', function (RouteBuilder $routes) {
         $routes->setExtensions(['json', 'xml']);
     });
 
@@ -899,11 +901,10 @@ By using extensions, you tell the router to remove any matching file extensions,
 and then parse what remains. If you want to create a URL such as
 /page/title-of-page.html you would create your route using::
 
-    Router::scope('/page', function ($routes) {
-        // Prior to 3.5.0 use `extensions()`
+    Router::scope('/page', function (RouteBuilder $routes) {
         $routes->setExtensions(['json', 'xml', 'html']);
         $routes->connect(
-            '/:title',
+            '/{title}',
             ['controller' => 'Pages', 'action' => 'view']
         )->setPass(['title']);
     });
@@ -928,6 +929,11 @@ to specific routing scopes offers more flexibility, as you can apply middleware
 only where it is needed allowing your middleware to not concern itself with
 how/where it is being applied.
 
+.. note::
+
+    Applied scoped middleware will be run by :ref:`RoutingMiddleware <routing-middleware>`,
+    normally at the end of your application's middleware queue.
+
 Before middleware can be applied to a scope, it needs to be
 registered into the route collection::
 
@@ -935,7 +941,7 @@ registered into the route collection::
     use Cake\Http\Middleware\CsrfProtectionMiddleware;
     use Cake\Http\Middleware\EncryptedCookieMiddleware;
 
-    Router::scope('/', function ($routes) {
+    Router::scope('/', function (RouteBuilder $routes) {
         $routes->registerMiddleware('csrf', new CsrfProtectionMiddleware());
         $routes->registerMiddleware('cookies', new EncryptedCookieMiddleware());
     });
@@ -943,18 +949,18 @@ registered into the route collection::
 Once registered, scoped middleware can be applied to specific
 scopes::
 
-    $routes->scope('/cms', function ($routes) {
+    $routes->scope('/cms', function (RouteBuilder $routes) {
         // Enable CSRF & cookies middleware
         $routes->applyMiddleware('csrf', 'cookies');
-        $routes->get('/articles/:action/*', ['controller' => 'Articles'])
+        $routes->get('/articles/{action}/*', ['controller' => 'Articles'])
     });
 
 In situations where you have nested scopes, inner scopes will inherit the
 middleware applied in the containing scope::
 
-    $routes->scope('/api', function ($routes) {
+    $routes->scope('/api', function (RouteBuilder $routes) {
         $routes->applyMiddleware('ratelimit', 'auth.api');
-        $routes->scope('/v1', function ($routes) {
+        $routes->scope('/v1', function (RouteBuilder $routes) {
             $routes->applyMiddleware('v1compat');
             // Define routes here.
         });
@@ -964,11 +970,11 @@ In the above example, the routes defined in ``/v1`` will have 'ratelimit',
 'auth.api', and 'v1compat' middleware applied. If you re-open a scope, the
 middleware applied to routes in each scope will be isolated::
 
-    $routes->scope('/blog', function ($routes) {
+    $routes->scope('/blog', function (RouteBuilder $routes) {
         $routes->applyMiddleware('auth');
         // Connect the authenticated actions for the blog here.
     });
-    $routes->scope('/blog', function ($routes) {
+    $routes->scope('/blog', function (RouteBuilder $routes) {
         // Connect the public actions for the blog here.
     });
 
@@ -991,9 +997,6 @@ can::
     // Apply the group
     $routes->applyMiddleware('web');
 
-.. versionadded:: 3.5.0
-    Scoped middleware & middleware groups were added in 3.5.0
-
 .. _resource-routes:
 
 RESTful Routing
@@ -1006,8 +1009,7 @@ this::
 
     // In config/routes.php...
 
-    Router::scope('/', function ($routes) {
-        // Prior to 3.5.0 use `extensions()`
+    Router::scope('/', function (RouteBuilder $routes) {
         $routes->setExtensions(['json']);
         $routes->resources('Recipes');
     });
@@ -1032,7 +1034,7 @@ PATCH       /recipes/123.format   RecipesController::edit(123)
 DELETE      /recipes/123.format   RecipesController::delete(123)
 =========== ===================== ==============================
 
-Ths HTTP method being used is detected from a few different sources.
+The HTTP method being used is detected from a few different sources.
 The sources in order of preference are:
 
 #. The ``_method`` POST variable
@@ -1051,8 +1053,8 @@ Once you have connected resources in a scope, you can connect routes for
 sub-resources as well. Sub-resource routes will be prepended by the original
 resource name and a id parameter. For example::
 
-    Router::scope('/api', function ($routes) {
-        $routes->resources('Articles', function ($routes) {
+    Router::scope('/api', function (RouteBuilder $routes) {
+        $routes->resources('Articles', function (RouteBuilder $routes) {
             $routes->resources('Comments');
         });
     });
@@ -1060,8 +1062,8 @@ resource name and a id parameter. For example::
 Will generate resource routes for both ``articles`` and ``comments``. The
 comments routes will look like::
 
-    /api/articles/:article_id/comments
-    /api/articles/:article_id/comments/:id
+    /api/articles/{article_id}/comments
+    /api/articles/{article_id}/comments/{id}
 
 You can get the ``article_id`` in ``CommentsController`` by::
 
@@ -1071,9 +1073,9 @@ By default resource routes map to the same prefix as the containing scope. If
 you have both nested and non-nested resource controllers you can use a different
 controller in each context by using prefixes::
 
-    Router::scope('/api', function ($routes) {
-        $routes->resources('Articles', function ($routes) {
-            $routes->resources('Comments', ['prefix' => 'articles']);
+    Router::scope('/api', function (RouteBuilder $routes) {
+        $routes->resources('Articles', function (RouteBuilder $routes) {
+            $routes->resources('Comments', ['prefix' => 'Articles']);
         });
     });
 
@@ -1086,9 +1088,6 @@ compatible with :ref:`prefix-routing`.
 
     While you can nest resources as deeply as you require, it is not recommended
     to nest more than 2 resources together.
-
-.. versionadded:: 3.3
-    The ``prefix`` option was added to ``resources()`` in 3.3.
 
 Limiting the Routes Created
 ---------------------------
@@ -1133,7 +1132,7 @@ You can map additional resource methods using the ``map`` option::
      // This would connect /articles/deleteAll
 
 In addition to the default routes, this would also connect a route for
-`/articles/delete_all`. By default the path segment will match the key name. You
+`/articles/delete-all`. By default the path segment will match the key name. You
 can use the 'path' key inside the resource definition to customize the path
 name::
 
@@ -1142,11 +1141,11 @@ name::
             'updateAll' => [
                 'action' => 'updateAll',
                 'method' => 'DELETE',
-                'path' => '/update_many'
+                'path' => '/update-many'
             ],
         ]
     ]);
-    // This would connect /articles/update_many
+    // This would connect /articles/update-many
 
 If you define 'only' and 'map', make sure that your mapped methods are also in
 the 'only' list.
@@ -1159,7 +1158,7 @@ Custom Route Classes for Resource Routes
 You can provide ``connectOptions`` key in the ``$options`` array for
 ``resources()`` to provide custom setting used by ``connect()``::
 
-    Router::scope('/', function ($routes) {
+    Router::scope('/', function (RouteBuilder $routes) {
         $routes->resources('Books', [
             'connectOptions' => [
                 'routeClass' => 'ApiRoute',
@@ -1172,23 +1171,17 @@ URL Inflection for Resource Routes
 
 By default, multi-worded controllers' URL fragments are the underscored
 form of the controller's name. E.g., ``BlogPostsController``'s URL fragment
-would be **/blog_posts**.
+would be **/blog-posts**.
 
 You can specify an alternative inflection type using the ``inflect`` option::
 
-    Router::scope('/', function ($routes) {
+    Router::scope('/', function (RouteBuilder $routes) {
         $routes->resources('BlogPosts', [
-            'inflect' => 'dasherize' // Will use ``Inflector::dasherize()``
+            'inflect' => 'underscore' // Will use ``Inflector::underscore()``
         ]);
     });
 
 The above will generate URLs styled like: **/blog-posts**.
-
-.. note::
-
-    As of CakePHP 3.1 the official app skeleton uses ``DashedRoute`` as its
-    default route class. Using the ``'inflect' => 'dasherize'`` option when
-    connecting resource routes is recommended for URL consistency.
 
 Changing the Path Element
 -------------------------
@@ -1196,12 +1189,9 @@ Changing the Path Element
 By default resource routes use an inflected form of the resource name for the
 URL segment. You can set a custom URL segment with the ``path`` option::
 
-    Router::scope('/', function ($routes) {
+    Router::scope('/', function (RouteBuilder $routes) {
         $routes->resources('BlogPosts', ['path' => 'posts']);
     });
-
-.. versionadded:: 3.5.0
-    The ``path`` option was added in 3.5.0
 
 .. index:: passed arguments
 .. _passed-arguments:
@@ -1324,6 +1314,53 @@ You can also use any of the special route elements when generating URLs:
 * ``_name`` Name of route. If you have setup named routes, you can use this key
   to specify it.
 
+.. _asset-routing:
+
+Generating Asset URLs
+=====================
+
+The ``Asset`` class provides methods for generating URLs to your application's
+css, javascript, images and other static asset files::
+
+    use Cake\Routing\Asset;
+
+    // Generate a URL to APP/webroot/js/app.js
+    $js = Asset::scriptUrl('app.js');
+
+    // Generate a URL to APP/webroot/css/app.css
+    $css = Asset::cssUrl('app.css');
+
+    // Generate a URL to APP/webroot/image/logo.png
+    $img = Asset::imageUrl('logo.png');
+
+    // Generate a URL to APP/webroot/files/upload/photo.png
+    $file = Asset::url('files/upload/photo.png');
+
+The above methods also accept an array of options as their second parameter:
+
+* ``fullBase`` Append the full URL with domain name.
+* ``pathPrefix`` Path prefix for relative URLs.
+* ``plugin``` You can provide ``false``` to prevent paths from being treated as
+  a plugin asset.
+* ``timestamp`` Overrides the value of ``Asset.timestamp`` in Configure.  Set to
+  ``false`` to skip timestamp generation.  Set to ``true`` to apply timestamps
+  when debug is true. Set to ``'force'`` to always enable timestamping
+  regardless of debug value.
+
+::
+
+    // Generates http://example.org/img/logo.png
+    $img = Asset::url('logo.png', ['fullBase' => true]);
+
+    // Generates /img/logo.png?1568563625
+    // Where the timestamp is the last modified time of the file.
+    $img = Asset::url('logo.png', ['timestamp' => true]);
+
+To generate asset URLs for files in plugins use :term:`plugin syntax`::
+
+    // Generates `/debug_kit/img/cake.png`
+    $img = Asset::imageUrl('DebugKit.cake.png');
+
 .. _redirect-routing:
 
 Redirect Routing
@@ -1338,7 +1375,7 @@ Redirection routes are different from normal routes as they perform an actual
 header redirection if a match is found. The redirection can occur to
 a destination within your application or an outside location::
 
-    Router::scope('/', function ($routes) {
+    Router::scope('/', function (RouteBuilder $routes) {
         $routes->redirect(
             '/home/*',
             ['controller' => 'Articles', 'action' => 'view'],
@@ -1354,7 +1391,7 @@ you to use other routes to define where a URL string should be
 redirected to. You can redirect to external locations using
 string URLs as the destination::
 
-    Router::scope('/', function ($routes) {
+    Router::scope('/', function (RouteBuilder $routes) {
         $routes->redirect('/articles/*', 'http://google.com', ['status' => 302]);
     });
 
@@ -1372,7 +1409,7 @@ routes more easily, and generate URLs with less code. For example, if you start
 off with a route that looks like::
 
     $routes->get(
-        '/view/:id',
+        '/view/{id}',
         ['controller' => 'Articles', 'action' => 'view'],
         'articles:view'
     );
@@ -1395,7 +1432,7 @@ rework when URLs require more parameters::
 
     // Create the route just like before.
     $routes->get(
-        '/view/:id',
+        '/view/{id}',
         ['controller' => 'Articles', 'action' => 'view'],
         'articles:view'
     );
@@ -1406,10 +1443,6 @@ Now we can generate URLs using the ``_entity`` key::
 
 This will extract both the ``id`` property and the ``slug`` property out of the
 provided entity.
-
-.. versionadded:: 3.6.0
-    Entity routing was added in 3.6.0
-
 
 .. _custom-route-classes:
 
@@ -1436,18 +1469,17 @@ You can use a custom route class when making a route by using the ``routeClass``
 option::
 
     $routes->connect(
-         '/:slug',
-         ['controller' => 'Articles', 'action' => 'view'],
-         ['routeClass' => 'SlugRoute']
+        '/{slug}',
+        ['controller' => 'Articles', 'action' => 'view'],
+        ['routeClass' => 'SlugRoute']
     );
 
     // Or by setting the routeClass in your scope.
-    $routes->scope('/', function ($routes) {
-        //Prior to 3.5.0 use `routeClass()`
+    $routes->scope('/', function (RouteBuilder $routes) {
         $routes->setRouteClass('SlugRoute');
         $routes->connect(
-             '/:slug',
-             ['controller' => 'Articles', 'action' => 'view']
+            '/{slug}',
+            ['controller' => 'Articles', 'action' => 'view']
         );
     });
 
@@ -1491,13 +1523,13 @@ Is equivalent to the following explicit calls::
 
     use Cake\Routing\Route\DashedRoute;
 
-    $routes->connect('/:controller', ['action' => 'index'], ['routeClass' => DashedRoute::class]);
-    $routes->connect('/:controller/:action/*', [], ['routeClass' => DashedRoute::class]);
+    $routes->connect('/{controller}', ['action' => 'index'], ['routeClass' => DashedRoute::class]);
+    $routes->connect('/{controller}/{action}/*', [], ['routeClass' => DashedRoute::class]);
 
 .. note::
 
     Using the default route class (``Route``) with fallbacks, or any route
-    with ``:plugin`` and/or ``:controller`` route elements will result in
+    with ``{plugin}`` and/or ``{controller}`` route elements will result in
     inconsistent URL case.
 
 Creating Persistent URL Parameters
@@ -1509,14 +1541,14 @@ allows you to prepare URLs before routing.
 
 Callback filter functions should expect the following parameters:
 
-- ``$params`` The URL params being processed.
-- ``$request`` The current request.
+- ``$params`` The URL parameter array being processed.
+- ``$request`` The current request (``Cake\Http\ServerRequest`` instance).
 
-The URL filter function should *always* return the params even if unmodified.
+The URL filter function should *always* return the parameters even if unmodified.
 
 URL filters allow you to implement features like persistent parameters::
 
-    Router::addUrlFilter(function ($params, $request) {
+    Router::addUrlFilter(function (array $params, ServerRequest $request) {
         if ($request->getParam('lang') && !isset($params['lang'])) {
             $params['lang'] = $request->getParam('lang');
         }
@@ -1528,7 +1560,7 @@ Filter functions are applied in the order they are connected.
 Another use case is changing a certain route on runtime (plugin routes for
 example)::
 
-    Router::addUrlFilter(function ($params, $request) {
+    Router::addUrlFilter(function (array $params, ServerRequest $request) {
         if (empty($params['plugin']) || $params['plugin'] !== 'MyPlugin' || empty($params['controller'])) {
             return $params;
         }
@@ -1549,32 +1581,10 @@ into this::
 
     Router::url(['plugin' => 'MyPlugin', 'controller' => 'Locations', 'action' => 'index', 'language' => 'es']);
 
-Handling Named Parameters in URLs
-=================================
-
-Although named parameters were removed in CakePHP 3.0, applications may have
-published URLs containing them.  You can continue to accept URLs containing
-named parameters.
-
-In your controller's ``beforeFilter()`` method you can call
-``parseNamedParams()`` to extract any named parameters from the passed
-arguments::
-
-    public function beforeFilter(Event $event)
-    {
-        parent::beforeFilter($event);
-        $this->request = Router::parseNamedParams($this->request);
-    }
-
-This will populate ``$this->request->getParam('named')`` with any named parameters
-found in the passed arguments.  Any passed argument that was interpreted as a
-named parameter, will be removed from the list of passed arguments.
-
-.. toctree::
-    :glob:
-    :maxdepth: 1
-
-    /development/dispatch-filters
+.. warning::
+    If you are using the caching features of :ref:`routing-middleware` you must
+    define the URL filters in your application ``bootstrap()`` as filters are
+    not part of the cached data.
 
 .. meta::
     :title lang=en: Routing

@@ -37,7 +37,7 @@ The model objects can be thought of as "Friend", "User", "Comment", or
 
     use Cake\ORM\TableRegistry;
 
-    $users = TableRegistry::get('Users');
+    $users = TableRegistry::getTableLocator()->get('Users');
     $query = $users->find();
     foreach ($query as $row) {
         echo $row->username;
@@ -52,7 +52,7 @@ something like::
 
     use Cake\ORM\TableRegistry;
 
-    $users = TableRegistry::get('Users');
+    $users = TableRegistry::getTableLocator()->get('Users');
     $user = $users->newEntity(['email' => 'mark@example.com']);
     $users->save($user);
 
@@ -96,7 +96,7 @@ controller would be::
 
     public function add()
     {
-        $user = $this->Users->newEntity();
+        $user = $this->Users->newEmptyEntity();
         if ($this->request->is('post')) {
             $user = $this->Users->patchEntity($user, $this->request->getData());
             if ($this->Users->save($user, ['validate' => 'registration'])) {

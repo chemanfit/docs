@@ -66,8 +66,10 @@ Une autre approche pour récupérer une nouvelle entity est d'utiliser la métho
 
     use Cake\ORM\TableRegistry;
 
-    $article = TableRegistry::get('Articles')->newEntity();
-    $article = TableRegistry::get('Articles')->newEntity([
+    // Prior to 3.6 use TableRegistry::get('Articles')
+    $article = TableRegistry::getTableLocator()->get('Articles')->newEntity();
+
+    $article = TableRegistry::getTableLocator()->get('Articles')->newEntity([
         'id' => 1,
         'title' => 'New Article',
         'created' => new DateTime('now')
@@ -117,7 +119,7 @@ case du nom du champ.
 
 .. php:method:: get($field)
 
-Ils reçoivent la valeur basique stockée dans le tableau ``_properties`` pour
+Ils reçoivent la valeur basique stockée dans le tableau ``_fields`` pour
 seul argument.
 Les accesseurs seront utilisés lors de la sauvegarde des entities. Faites donc
 attention lorsque vous définissez des méthodes qui formatent les données car ce
@@ -138,8 +140,8 @@ sont ces données formatées qui seront sauvegardées. Par exemple::
 Les accesseurs seront utilisés quand vous récupérerez la propriété via une de
 ces deux manières::
 
-    echo $user->title;
-    echo $user->get('title');
+    echo $article->title;
+    echo $article->get('title');
 
 Vous pouvez personnaliser la façon dont les propriétés sont récupérées/définies
 en définissant un mutateur:
@@ -203,8 +205,8 @@ nom complet::
 
         protected function _getFullName()
         {
-            return $this->_properties['first_name'] . '  ' .
-                $this->_properties['last_name'];
+            return $this->_fields['first_name'] . '  ' .
+                $this->_fields['last_name'];
         }
 
     }

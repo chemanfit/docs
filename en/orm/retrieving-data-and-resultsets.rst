@@ -18,7 +18,7 @@ Since the ORM now returns Collections and Entities, debugging these objects can
 be more complicated than in previous CakePHP versions. There are now various
 ways to inspect the data returned by the ORM.
 
-- ``debug($query)`` Shows the SQL and bound params, does not show results.
+- ``debug($query)`` Shows the SQL and bound parameters, does not show results.
 - ``sql($query)`` Shows the final rendered SQL, but only when having DebugKit installed.
 - ``debug($query->all())`` Shows the ResultSet properties (not the results).
 - ``debug($query->toList())`` An easy way to show each of the results.
@@ -167,9 +167,7 @@ methods will let you re-use your queries and make testing easier.
 By default queries and result sets will return :doc:`/orm/entities` objects. You
 can retrieve basic arrays by disabling hydration::
 
-    $query->enableHydration(false);
-    // Prior to 3.4.0
-    $query->hydrate(false);
+    $query->disableHydration();
 
     // $data is ResultSet that contains array data.
     $data = $query->all();
@@ -237,12 +235,9 @@ a table::
 
     class ArticlesTable extends Table
     {
-
-        public function initialize(array $config)
+        public function initialize(array $config): void
         {
             $this->setDisplayField('title');
-            // Prior to 3.4.0
-            $this->displayField('title');
         }
     }
 
@@ -300,8 +295,8 @@ list finds. ::
     // In your Authors Entity create a virtual field to be used as the displayField:
     protected function _getLabel()
     {
-        return $this->_properties['first_name'] . ' ' . $this->_properties['last_name']
-          . ' / ' . __('User ID %s', $this->_properties['user_id']);
+        return $this->_fields['first_name'] . ' ' . $this->_fields['last_name']
+          . ' / ' . __('User ID %s', $this->_fields['user_id']);
     }
 
 This example shows using the ``_getLabel()`` accessor method from
@@ -370,17 +365,13 @@ would do the following::
 
     class ArticlesTable extends Table
     {
-
         public function findOwnedBy(Query $query, array $options)
         {
             $user = $options['user'];
             return $query->where(['author_id' => $user->id]);
         }
-
     }
 
-    // In a controller or table method.
-    $articles = TableRegistry::get('Articles');
     $query = $articles->find('ownedBy', ['user' => $userEntity]);
 
 Finder methods can modify the query as required, or use the ``$options`` to
@@ -388,16 +379,22 @@ customize the finder operation with relevant application logic. You can also
 'stack' finders, allowing you to express complex queries effortlessly. Assuming
 you have both the 'published' and 'recent' finders, you could do the following::
 
-    // In a controller or table method.
-    $articles = TableRegistry::get('Articles');
     $query = $articles->find('published')->find('recent');
 
-While all the examples so far have show finder methods on table classes, finder
+While all the examples so far have shown finder methods on table classes, finder
 methods can also be defined on :doc:`/orm/behaviors`.
 
 If you need to modify the results after they have been fetched you should use
 a :ref:`map-reduce` function to modify the results. The map reduce features
 replace the 'afterFind' callback found in previous versions of CakePHP.
+
+.. note::
+
+    Passing arguments exposed in the **config** array,
+    ``$products->find('sizes', ['large', 'medium'])``
+    can give unexpected results when chaining
+    custom finders. Always pass options as an associative array,
+    ``$products->find('sizes', ['values' => ['large', 'medium']])``
 
 .. _dynamic-finders:
 
@@ -413,12 +410,6 @@ find a user by username you could do::
     $query = $this->Users->findByUsername('joebob');
     $query = $this->Users->findAllByUsername('joebob');
 
-    // In a table method
-    $users = TableRegistry::get('Users');
-    // The following two calls are equal.
-    $query = $users->findByUsername('joebob');
-    $query = $users->findAllByUsername('joebob');
-
 When using dynamic finders you can constrain on multiple fields::
 
     $query = $users->findAllByUsernameAndApproved('joebob', 1);
@@ -427,9 +418,9 @@ You can also create ``OR`` conditions::
 
     $query = $users->findAllByUsernameOrEmail('joebob', 'joe@example.com');
 
-While you can use either OR or AND conditions, you cannot combine the two in a
-single dynamic finder. Other query options like ``contain`` are also not
-supported with dynamic finders. You should use :ref:`custom-find-methods` to
+While you can use either ``OR`` or ``AND`` conditions, you cannot combine the
+two in a single dynamic finder. Other query options like ``contain`` are also
+not supported with dynamic finders. You should use :ref:`custom-find-methods` to
 encapsulate more complex queries.  Lastly, you can also combine dynamic finders
 with custom finders::
 
@@ -446,8 +437,9 @@ Once you have a query object from a dynamic finder, you'll need to call
 
 .. note::
 
-    While dynamic finders make it simple to express queries, they come with some
-    additional performance overhead.
+    While dynamic finders make it simple to express queries, they add a small
+    amount of overhead. You cannot call ``findBy`` methods from a query object.
+    When using a finder chain the dynamic finder must be called first.
 
 Retrieving Associated Data
 ==========================
@@ -558,12 +550,11 @@ Passing Conditions to Contain
 -----------------------------
 
 When using ``contain()`` you are able to restrict the data returned by the
-associations and filter them by conditions::
+associations and filter them by conditions. To specify conditions, pass an anonymous
+function that receives as the first argument a query object, ``\Cake\ORM\Query``::
 
     // In a controller or table method.
-    // Prior to 3.5.0 you would use contain(['Comments' => function () { ... }])
-
-    $query = $articles->find()->contain('Comments', function ($q) {
+    $query = $articles->find()->contain('Comments', function (Query $q) {
         return $q
             ->select(['body', 'author_id'])
             ->where(['Comments.approved' => true]);
@@ -572,24 +563,23 @@ associations and filter them by conditions::
 This also works for pagination at the Controller level::
 
     $this->paginate['contain'] = [
-        'Comments' => function (\Cake\ORM\Query $query) {
+        'Comments' => function (Query $query) {
             return $query->select(['body', 'author_id'])
             ->where(['Comments.approved' => true]);
         }
     ];
 
-.. note::
+.. warning::
 
-    When you limit the fields that are fetched from an association, you **must**
-    ensure that the foreign key columns are selected. Failing to select foreign
-    key fields will cause associated data to not be present in the final result.
+    If the results are missing association entities, make sure the foreign key columns
+    are selected in the query.  Without the foreign keys, the ORM cannot find matching rows.
 
 It is also possible to restrict deeply-nested associations using the dot
 notation::
 
     $query = $articles->find()->contain([
         'Comments',
-        'Authors.Profiles' => function ($q) {
+        'Authors.Profiles' => function (Query $q) {
             return $q->where(['Profiles.is_published' => true]);
         }
     ]);
@@ -601,25 +591,28 @@ finders in your associations, you can use them inside ``contain()``::
 
     // Bring all articles, but only bring the comments that are approved and
     // popular.
-    $query = $articles->find()->contain('Comments', function ($q) {
+    $query = $articles->find()->contain('Comments', function (Query $q) {
         return $q->find('approved')->find('popular');
     });
 
 .. note::
 
-    For ``BelongsTo`` and ``HasOne`` associations only the ``where`` and
-    ``select`` clauses are used when loading the associated records. For the
-    rest of the association types you can use every clause that the query object
-    provides.
+    With ``BelongsTo`` and ``HasOne`` associations only ``select`` and ``where`` clauses
+    are valid in the ``contain()`` query.  With ``HasMany`` and ``BelongsToMany`` all
+    clauses such as ``order()`` are valid.
 
-If you need full control over the query that is generated, you can tell ``contain()``
-to not append the ``foreignKey`` constraints to the generated query. In that
-case you should use an array passing ``foreignKey`` and ``queryBuilder``::
+You can control more than just the query clauses used by ``contain()``.  If you pass an array
+with the association, you can override the ``foreignKey``, ``joinType`` and ``strategy``.
+See the ref:`associations` for details on the default value and options for each
+association type.
+
+You can pass ``false`` as the new ``foreignKey`` to disable foreign key constraints entirely.
+Use the ``queryBuilder`` option to customize the query when using an array::
 
     $query = $articles->find()->contain([
         'Authors' => [
             'foreignKey' => false,
-            'queryBuilder' => function ($q) {
+            'queryBuilder' => function (Query $q) {
                 return $q->where(...); // Full conditions for filtering
             }
         ]
@@ -641,13 +634,10 @@ Alternatively, if you have multiple associations, you can use ``enableAutoFields
     // and Tags.
     $query->select(['id', 'title'])
         ->contain(['Comments', 'Tags'])
-        ->enableAutoFields(true) // Prior to 3.4.0 use autoFields(true)
-        ->contain(['Users' => function($q) {
+        ->enableAutoFields(true)
+        ->contain(['Users' => function(Query $q) {
             return $q->autoFields(true);
         }]);
-
-.. versionadded:: 3.1
-    Selecting columns via an association object was added in 3.1
 
 Sorting Contained Associations
 ------------------------------
@@ -716,29 +706,23 @@ already familiar to you::
     example, when the same users comments more than once on a single article.
 
 The data from the association that is 'matched' will be available on the
-``_matchingData`` property of entities. If you both match and contain the same
+``_matchingData`` property of entities. If both match and contain the same
 association, you can expect to get both the ``_matchingData`` and standard
 association properties in your results.
 
 Using innerJoinWith
 -------------------
 
-Using the ``matching()`` function, as we saw already, will create an ``INNER
-JOIN`` with the specified association and will also load the fields into the
-result set.
-
-There may be cases where you want to use ``matching()`` but are not interested
-in loading the fields into the result set. For this purpose, you can use
-``innerJoinWith()``::
+Sometimes you need to match specific associated data but without actually
+loading the matching records like ``matching()``. You can create just the
+``INNER JOIN`` that ``matching()`` uses with ``innerJoinWith()``::
 
     $query = $articles->find();
     $query->innerJoinWith('Tags', function ($q) {
         return $q->where(['Tags.name' => 'CakePHP']);
     });
 
-The ``innerJoinWith()`` method works the same as ``matching()``, that
-means that you can use dot notation to join deeply nested
-associations::
+``innerJoinWith()`` allows you to the same parameters and dot notation::
 
     $query = $products->find()->innerJoinWith(
         'Shops.Cities.Countries', function ($q) {
@@ -746,11 +730,36 @@ associations::
         }
     );
 
-Again, the only difference is that no additional columns will be added to the
-result set, and no ``_matchingData`` property will be set.
+You can combine ``innerJoinWith()`` and ``contain()`` with the same association
+when you want to match specific records and load the associated data together.
+The example below matches Articles that have specific Tags and loads the same Tags::
 
-.. versionadded:: 3.1
-    Query::innerJoinWith() was added in 3.1
+    $filter = ['Tags.name' => 'CakePHP'];
+    $query = $articles->find()
+        ->distinct($articles->getPrimaryKey())
+        ->contain('Tags', function (Query $q) use ($filter) {
+            return $q->where($filter);
+        })
+        ->innerJoinWith('Tags', function (Query $q) use ($filter) {
+            return $q->where($filter);
+        });
+
+.. note::
+    If you use ``innerJoinWith()`` and want to ``select()`` fields from that association,
+    you need to use an alias for the field::
+
+        $query
+            ->select(['country_name' => 'Countries.name'])
+            ->innerJoinWith('Countries');
+
+    If you don't use an alias, you will see the data in ``_matchingData`` as described
+    by ``matching()`` above.  This is an edge case from ``matching()`` not knowing you
+    manually selected the field.
+
+.. warning::
+    You should not combine ``innerJoinWith()`` and ``matching()`` with the same association.
+    This will produce multiple ``INNER JOIN`` statements and might not create the query you
+    expected.
 
 Using notMatching
 -----------------
@@ -809,9 +818,6 @@ commented by a certain user::
 Keep in mind that contrary to the ``matching()`` function, ``notMatching()``
 will not add any data to the ``_matchingData`` property in the results.
 
-.. versionadded:: 3.1
-    Query::notMatching() was added in 3.1
-
 Using leftJoinWith
 ------------------
 
@@ -824,7 +830,7 @@ data, you can use the ``leftJoinWith()`` function::
     $query->select(['total_comments' => $query->func()->count('Comments.id')])
         ->leftJoinWith('Comments')
         ->group(['Articles.id'])
-        ->enableAutoFields(true); // Prior to 3.4.0 use autoFields(true);
+        ->enableAutoFields(true);
 
 The results for the above query will contain the article data and the
 ``total_comments`` property for each of them.
@@ -840,56 +846,37 @@ word, per author::
             return $q->where(['Tags.name' => 'awesome']);
         })
         ->group(['Authors.id'])
-        ->enableAutoFields(true); // Prior to 3.4.0 use autoFields(true);
+        ->enableAutoFields(true);
 
 This function will not load any columns from the specified associations into the
 result set.
-
-.. versionadded:: 3.1
-    Query::leftJoinWith() was added in 3.1
 
 .. end-filtering
 
 Changing Fetching Strategies
 ============================
 
-As you may know already, ``belongsTo`` and ``hasOne`` associations are loaded
-using a ``JOIN`` in the main finder query. While this improves query and
-fetching speed and allows for creating more expressive conditions when
-retrieving data, this may be a problem when you want to apply certain clauses to
-the finder query for the association, such as ``order()`` or ``limit()``.
+As mentioned in ref:`contain-conditions`, you can customize the ``strategy``
+used by an association in a ``contain()``.
 
-For example, if you wanted to get the first comment of an article as an
-association::
-
-   $articles->hasOne('FirstComment', [
-        'className' => 'Comments',
-        'foreignKey' => 'article_id'
-   ]);
-
-In order to correctly fetch the data from this association, we will need to tell
-the query to use the ``select`` strategy, since we want order by a particular
-column::
+If you look at ``BelongsTo`` and ``HasOne`` ref:`associations` options,
+the default 'join' strategy and 'INNER' ``joinType`` can be changed to
+'select'::
 
     $query = $articles->find()->contain([
-        'FirstComment' => [
+        'Comments' => [
             'strategy' => 'select',
-            'queryBuilder' => function ($q) {
-                return $q->order(['FirstComment.created' =>'ASC'])->limit(1);
-            }
         ]
     ]);
 
-Dynamically changing the strategy in this way will only apply to a specific
-query. If you want to make the strategy change permanent you can do::
+This can be useful when you need to add conditions that don't
+work well in a join.  This also makes it possible to query tables
+that are not allowed in joins such as separate databases.
 
-    $articles->FirstComment->setStrategy('select');
-    // Prior to 3.4.0
-    $articles->FirstComment->strategy('select');
+Usually, you set the strategy for an association when defining it
+in ``Table::initialize()``, but you can permanently change the strategy manually::
 
-Using the ``select`` strategy is also a great way of making associations with
-tables in another database, since it would not be possible to fetch records
-using ``joins``.
+    $articles->Comments->setStrategy('select');
 
 Fetching With The Subquery Strategy
 -----------------------------------
@@ -914,12 +901,6 @@ particular it will allow to fetch big chunks of data at the same time in
 databases that limit the amount of bound parameters per query, such as
 **Microsoft SQL Server**.
 
-You can also make the strategy permanent for the association by doing::
-
-    $articles->Comments->setStrategy('subquery');
-    // Prior to 3.4.0
-    $articles->Comments->strategy('subquery');
-
 Lazy Loading Associations
 =========================
 
@@ -943,9 +924,7 @@ set multiple times, or cache and iterate the results. If you need work with
 a data set that does not fit into memory you can disable buffering on the query
 to stream results::
 
-    $query->enableBufferedResults(false);
-    // Prior to 3.4.0
-    $query->bufferResults(false);
+    $query->disableBufferedResults();
 
 Turning buffering off has a few caveats:
 
@@ -983,7 +962,6 @@ do. For example, you can extract a list of unique tags on a collection of
 articles by running::
 
     // In a controller or table method.
-    $articles = TableRegistry::get('Articles');
     $query = $articles->find()->contain(['Tags']);
 
     $reducer = function ($output, $value) {
@@ -1005,7 +983,6 @@ Some other examples of the collection methods being used with result sets are::
     });
 
     // Create an associative array from result properties
-    $articles = TableRegistry::get('Articles');
     $results = $articles->find()->contain(['Authors'])->all();
 
     $authorList = $results->combine('id', 'author.name');
@@ -1066,9 +1043,6 @@ can load additional associations using ``loadInto()``::
 You can eager load additional data into a single entity, or a collection of
 entities.
 
-.. versionadded: 3.1
-    Table::loadInto() was added in 3.1
-
 .. _map-reduce:
 
 Modifying Results with Map/Reduce
@@ -1076,7 +1050,7 @@ Modifying Results with Map/Reduce
 
 More often than not, find operations require post-processing the data that is
 found in the database. While entities' getter methods can take care of most of
-the virtual property generation or special data formatting, sometimes you
+the virtual field generation or special data formatting, sometimes you
 need to change the data structure in a more fundamental way.
 
 For those cases, the ``Query`` object offers the ``mapReduce()`` method, which
@@ -1163,7 +1137,7 @@ Finally, we put everything together::
     $wordCount = $articles->find()
         ->where(['published' => true])
         ->andWhere(['published_date >=' => new DateTime('2014-01-01')])
-        ->enableHydrate(false) // Prior to 3.4.0 use hydrate(false)
+        ->disableHydration()
         ->mapReduce($mapper, $reducer)
         ->toArray();
 
@@ -1223,7 +1197,7 @@ of followers per user::
 And we supply our functions to a query::
 
     $fakeFriends = $friends->find()
-        ->enableHydrate(false) // Prior to 3.4.0 use hydrate(false)
+        ->disableHydration()
         ->mapReduce($mapper, $reducer)
         ->toArray();
 

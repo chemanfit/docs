@@ -5,13 +5,17 @@ After you've downloaded the CakePHP application skeleton, there are a few top
 level folders you should see:
 
 - The *bin* folder holds the Cake console executables.
-- The *config* folder holds the (few) :doc:`/development/configuration` files
+- The *config* folder holds the :doc:`/development/configuration` files
   CakePHP uses. Database connection details, bootstrapping, core configuration files
   and more should be stored here.
 - The *plugins* folder is where the :doc:`/plugins` your application uses are stored.
 - The *logs* folder normally contains your log files, depending on your log
   configuration.
 - The *src* folder will be where your application’s source files will be placed.
+- The *templates* folder has presentational files placed here:
+  elements, error pages, layouts, and view template files.
+- The *resources* folder has sub folder for various types of resource files.
+  The *locales** sub folder stores string files for internationalization.
 - The *tests* folder will be where you put the test cases for your application.
 - The *tmp* folder is where CakePHP stores temporary data. The actual data it
   stores depends on how you have CakePHP configured, but this folder
@@ -35,20 +39,29 @@ CakePHP's *src* folder is where you will do most of your application
 development. Let's look a little closer at the folders inside
 *src*.
 
+Command
+    Contains your application's console commands. See
+    :doc:`/console-commands/commands` to learn more.
+Console
+    Contains the installation script executed by Composer.
 Controller
-    Contains your application's controllers and their components.
+    Contains your application's :doc:`/controllers` and their components.
 Locale
-    Stores string files for internationalization.
+    Stores language files for internationalization.
+Middleware
+    Stores any :doc:`/controllers/middleware` for your application.
 Model
     Contains your application's tables, entities and behaviors.
 Shell
-    Contains the console commands and console tasks for your application.
-    For more information see :doc:`/console-and-shells`.
+    Contains shell tasks for your application.
+    For more information see :doc:`/console-commands/shells`.
 View
     Presentational classes are placed here: views, cells, helpers.
-Template
-    Presentational files are placed here: elements, error pages,
-    layouts, and view template files.
+
+.. note::
+
+    The folders ``Shell`` and ``Locale`` are not present by default.
+    You can add them when you need them.
 
 .. meta::
     :title lang=en: CakePHP Folder Structure

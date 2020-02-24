@@ -2,10 +2,18 @@
 ############
 
 .. toctree::
-   :hidden:
+    :hidden:
 
-   index
-   topics
+    index
+    topics
+    chronos
+    debug-kit
+    elasticsearch
+    bake
+    bake/development
+    bake/usage
+    migrations
+    phinx
 
 .. toctree::
     :maxdepth: 3
@@ -13,7 +21,8 @@
 
     intro
     quickstart
-    appendices/3-x-migration-guide
+    appendices/4-0-migration-guide
+    appendices/4-0-upgrade-guide
     tutorials-and-examples
     contributing
 
@@ -23,6 +32,7 @@
 
     installation
     development/configuration
+    development/application
     development/routing
     controllers/request-response
     controllers/middleware
@@ -34,8 +44,6 @@
     :maxdepth: 3
     :caption: 一般的なトピック
 
-    controllers/components/authentication
-    bake
     core-libraries/caching
     console-and-shells
     development/debugging
@@ -74,11 +82,13 @@
     :maxdepth: 3
     :caption: プラグイン
 
-    chronos
-    debug-kit
-    migrations
-    elasticsearch
-    upgrade-tool
+    Authorization <https://book.cakephp.org/authorization/2/>
+    Authentication <https://book.cakephp.org/authentication/2/>
+    Bake <https://book.cakephp.org/bake/2/ja/>
+    Chronos <https://book.cakephp.org/chronos/2/ja/>
+    Debug Kit <https://book.cakephp.org/debugkit/4/ja/>
+    Migrations <https://book.cakephp.org/migrations/3/ja/>
+    Elasticsearch <https://book.cakephp.org/elasticsearch/2/ja/>
 
 .. toctree::
     :maxdepth: 3
@@ -91,7 +101,7 @@
     :maxdepth: 3
     :caption: Phinx
 
-    phinx
+    Phinx <https://book.cakephp.org/phinx/0/ja/>
 
 .. todolist::
 

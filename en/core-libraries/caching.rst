@@ -17,23 +17,26 @@ interact with various Caching implementations. CakePHP
 provides several cache engines, and provides a simple interface if you need to
 build your own backend. The built-in caching engines are:
 
-* ``FileCache`` File cache is a simple cache that uses local files. It
+* ``File`` File cache is a simple cache that uses local files. It
   is the slowest cache engine, and doesn't provide as many features for
   atomic operations. However, since disk storage is often quite cheap,
   storing large objects, or elements that are infrequently written
   work well in files.
-* ``ApcuEngine`` APCu cache uses the PHP `APCu <http://php.net/apcu>`_ extension.
+* ``Memcached`` Uses the `Memcached <http://php.net/memcached>`_
+  extension.
+* ``Redis`` Uses the `phpredis <https://github.com/nicolasff/phpredis>`_
+  extension. Redis provides a fast and persistent cache system similar to
+  Memcached, also provides atomic operations.
+* ``Apcu`` APCu cache uses the PHP `APCu <http://php.net/apcu>`_ extension.
   This extension uses shared memory on the webserver to store objects.
-  This makes it very fast, and able to provide atomic read/write features. Prior
-  to 3.6.0 ``ApcuEngine`` was named ``ApcEngine``.
+  This makes it very fast, and able to provide atomic read/write features.
 * ``Wincache`` Wincache uses the `Wincache <http://php.net/wincache>`_
   extension. Wincache is similar to APC in features and performance, but
   optimized for Windows and IIS.
-* ``MemcachedEngine`` Uses the `Memcached <http://php.net/memcached>`_
-  extension.
-* ``RedisEngine`` Uses the `phpredis <https://github.com/nicolasff/phpredis>`_
-  extension. Redis provides a fast and persistent cache system similar to
-  Memcached, also provides atomic operations.
+* ``Array`` Stores all data in an array. This engine does not provide
+  persistent storage and is intended for use in application test suites.
+* ``Null`` The null engine doesn't actually store anything and fails all read
+  operations. 
 
 Regardless of the CacheEngine you choose to use, your application interacts with
 :php:class:`Cake\\Cache\\Cache`.
@@ -43,7 +46,7 @@ Regardless of the CacheEngine you choose to use, your application interacts with
 Configuring Cache Engines
 =========================
 
-.. php:staticmethod:: config($key, $config = null)
+.. php:staticmethod:: setConfig($key, $config = null)
 
 Your application can configure any number of 'engines' during its bootstrap
 process. Cache engine configurations are defined in **config/app.php**.
@@ -80,7 +83,7 @@ following::
 Configuration options can also be provided as a :term:`DSN` string. This is
 useful when working with environment variables or :term:`PaaS` providers::
 
-    Cache::config('short', [
+    Cache::setConfig('short', [
         'url' => 'memcached://user:password@cache-host/?timeout=3600&prefix=myapp_',
     ]);
 
@@ -90,7 +93,7 @@ query string arguments.
 You can also configure Cache engines at runtime::
 
     // Using a short name
-    Cache::config('short', [
+    Cache::setConfig('short', [
         'className' => 'File',
         'duration' => '+1 hours',
         'path' => CACHE,
@@ -98,7 +101,7 @@ You can also configure Cache engines at runtime::
     ]);
 
     // Using a fully namespaced name.
-    Cache::config('long', [
+    Cache::setConfig('long', [
         'className' => 'Cake\Cache\Engine\FileEngine',
         'duration' => '+1 week',
         'probability' => 100,
@@ -107,7 +110,7 @@ You can also configure Cache engines at runtime::
 
     // Using a constructed object.
     $object = new FileEngine($config);
-    Cache::config('other', $object);
+    Cache::setConfig('other', $object);
 
 The name of these engine configurations ('short' and 'long') are used as the ``$config``
 parameter for :php:meth:`Cake\\Cache\\Cache::write()` and
@@ -115,16 +118,16 @@ parameter for :php:meth:`Cake\\Cache\\Cache::write()` and
 refer to the class name using the following syntaxes::
 
     // Short name (in App\ or Cake namespaces)
-    Cache::config('long', ['className' => 'File']);
+    Cache::setConfig('long', ['className' => 'File']);
 
     // Plugin short name
-    Cache::config('long', ['className' => 'MyPlugin.SuperCache']);
+    Cache::setConfig('long', ['className' => 'MyPlugin.SuperCache']);
 
     // Full namespace
-    Cache::config('long', ['className' => 'Cake\Cache\Engine\FileEngine']);
+    Cache::setConfig('long', ['className' => 'Cake\Cache\Engine\FileEngine']);
 
     // An object implementing CacheEngineInterface
-    Cache::config('long', ['className' => $myCache]);
+    Cache::setConfig('long', ['className' => $myCache]);
 
 .. note::
 
@@ -137,11 +140,13 @@ Engine Options
 Each engine accepts the following options:
 
 * ``duration`` Specify how long items in this cache configuration last.
-  Specified as a ``strototime()`` compatible expression.
+  Specified as a ``strtotime()`` compatible expression.
 * ``groups`` List of groups or 'tags' associated to every key stored in this
-  config.  handy for deleting a complete group from cache.
+  config. Useful when you need to delete a subset of data from a cache.
 * ``prefix`` Prepended to all entries. Good for when you need to share
   a keyspace with either another cache config or another application.
+* ``probability`` Probability of hitting a cache gc cleanup. Setting to 0 will disable
+  ``Cache::gc()`` from ever being called automatically.
 
 FileEngine Options
 -------------------
@@ -173,14 +178,14 @@ MemcacheEngine Options
 - ``username`` Login to access the Memcache server.
 - ``password`` Password to access the Memcache server.
 - ``persistent`` The name of the persistent connection. All configurations using
-   the same persistent value will share a single underlying connection.
+  the same persistent value will share a single underlying connection.
 - ``serialize`` The serializer engine used to serialize data. Available engines are php,
-   igbinary and json. Beside php, the memcached extension must be compiled with the
-   appropriate serializer support.
+  igbinary and json. Beside php, the memcached extension must be compiled with the
+  appropriate serializer support.
 - ``servers`` String or array of memcached servers. If an array MemcacheEngine will use
-   them as a pool.
+  them as a pool.
 - ``options`` Additional options for the memcached client. Should be an array of option => value.
-   Use the ``\Memcached::OPT_*`` constants as keys.
+  Use the ``\Memcached::OPT_*`` constants as keys.
 
 .. _cache-configuration-fallback:
 
@@ -196,7 +201,7 @@ cache failure.
 You can configure Cache configurations to fall back to a specified config using
 the ``fallback`` configuration key::
 
-    Cache::config('redis', [
+    Cache::setConfig('redis', [
         'className' => 'Redis',
         'duration' => '+1 hours',
         'prefix' => 'cake_redis_',
@@ -213,7 +218,7 @@ from throwing an uncaught exception.
 
 You can turn off cache fallbacks with ``false``::
 
-    Cache::config('redis', [
+    Cache::setConfig('redis', [
         'className' => 'Redis',
         'duration' => '+1 hours',
         'prefix' => 'cake_redis_',
@@ -224,14 +229,6 @@ You can turn off cache fallbacks with ``false``::
 
 When there is no fallback cache failures will be raised as exceptions.
 
-
-
-.. versionadded:: 3.5.0
-    Cache engine fallbacks were added.
-
-.. versionchanged:: 3.6.0
-    Fallbacks can now be disabled via ``false``
-
 Removing Configured Cache Engines
 ---------------------------------
 
@@ -239,7 +236,7 @@ Removing Configured Cache Engines
 
 Once a configuration is created you cannot change it. Instead you should drop
 the configuration and re-create it using :php:meth:`Cake\\Cache\\Cache::drop()` and
-:php:meth:`Cake\\Cache\\Cache::config()`. Dropping a cache engine will remove
+:php:meth:`Cake\\Cache\\Cache::setConfig()`. Dropping a cache engine will remove
 the config and destroy the adapter if it was constructed.
 
 Writing to a Cache
@@ -254,7 +251,8 @@ no ``$config`` is specified, default will be used. ``Cache::write()``
 can store any type of object and is ideal for storing results of
 model finds::
 
-    if (($posts = Cache::read('posts')) === false) {
+    $posts = Cache::read('posts');
+    if ($posts === null) {
         $posts = $someService->getAllPosts();
         Cache::write('posts', $posts);
     }
@@ -316,16 +314,14 @@ Reading From a Cache
 ``Cache::read()`` is used to read the cached value stored under
 ``$key`` from the ``$config``. If ``$config`` is null the default
 config will be used. ``Cache::read()`` will return the cached value
-if it is a valid cache or ``false`` if the cache has expired or
-doesn't exist. The contents of the cache might evaluate false, so
-make sure you use the strict comparison operators: ``===`` or
-``!==``.
+if it is a valid cache or ``null`` if the cache has expired or
+doesn't exist. Use strict comparison operators ``===`` or ``!==``
+to check the success of the ``Cache::read()`` operation.
 
 For example::
 
     $cloud = Cache::read('cloud');
-
-    if ($cloud !== false) {
+    if ($cloud !== null) {
         return $cloud;
     }
 
@@ -334,6 +330,22 @@ For example::
 
     // Store data in cache
     Cache::write('cloud', $cloud);
+
+    return $cloud;
+    
+Or if you are using another cache configuration called ``short``, you can
+specify it in ``Cache::read()`` and ``Cache::write()`` calls as below::
+
+    // Read key "cloud", but from short configuration instead of default
+    $cloud = Cache::read('cloud', 'short');
+    if ($cloud === null) {
+        // Generate cloud data
+        // ...
+
+        // Store data in cache, using short cache configuration instead of default
+        Cache::write('cloud', $cloud, 'short');
+    }
+
     return $cloud;
 
 Reading Multiple Keys at Once
@@ -384,18 +396,15 @@ save multiple network connections when using Memcached::
 Clearing Cached Data
 ====================
 
-.. php:staticmethod:: clear($check, $config = 'default')
+.. php:staticmethod:: clear($config = 'default')
 
 Destroy all cached values for a cache configuration. In engines like: Apcu,
 Memcached, and Wincache, the cache configuration's prefix is used to remove
 cache entries. Make sure that different cache configurations have different
 prefixes::
 
-    // Will only clear expired keys.
-    Cache::clear(true);
-
     // Will clear all keys.
-    Cache::clear(false);
+    Cache::clear();
 
 .. note::
 
@@ -450,7 +459,7 @@ group or namespace. This is a common requirement for mass-invalidating keys
 whenever some information changes that is shared among all entries in the same
 group. This is possible by declaring the groups in cache configuration::
 
-    Cache::config('site_home', [
+    Cache::setConfig('site_home', [
         'className' => 'Redis',
         'duration' => '+999 days',
         'groups' => ['comment', 'article']
@@ -536,7 +545,7 @@ Or in **plugins/MyPlugin/src/Cache/Engine/MyCustomCacheEngine.php** as
 part of a plugin. Cache configs from plugins need to use the plugin
 dot syntax::
 
-    Cache::config('custom', [
+    Cache::setConfig('custom', [
         'className' => 'MyPlugin.MyCustomCache',
         // ...
     ]);
@@ -551,18 +560,18 @@ The required API for a CacheEngine is
 
     The base class for all cache engines used with Cache.
 
-.. php:method:: write($key, $value, $config = 'default')
+.. php:method:: write($key, $value)
 
     :return: boolean for success.
 
-    Write value for a key into cache, optional string $config
-    specifies configuration name to write to.
+    Write value for a key into cache, Return ``true``
+    if the data was successfully cached, ``false`` on failure.
 
 .. php:method:: read($key)
 
-    :return: The cached value or ``false`` for failure.
+    :return: The cached value or ``null`` for failure.
 
-    Read a key from the cache. Return ``false`` to indicate
+    Read a key from the cache. Return ``null`` to indicate
     the entry has expired or does not exist.
 
 .. php:method:: delete($key)

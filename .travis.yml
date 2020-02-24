@@ -7,6 +7,7 @@ addons:
       - texlive-lang-all
 
 language: python
+python: '3.6'
 
 env:
   matrix:

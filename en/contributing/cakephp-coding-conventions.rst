@@ -161,7 +161,7 @@ the condition check of the ternary for clarity::
 Template Files
 --------------
 
-In template files (.ctp files) developers should use keyword control structures.
+In template files developers should use keyword control structures.
 Keyword control structures are easier to read in complex template files. Control
 structures can either be contained in a larger PHP block, or in separate PHP
 tags::
@@ -245,6 +245,33 @@ it can be determined whether the function call was successful::
     }
 
 There are spaces on both side of the equals sign.
+
+Bail Early
+==========
+
+Try to avoid unnecessary nesting by bailing early::
+
+    public function run(array $data)
+    {
+        ...
+        if (!$success) {
+            return false;
+        }
+
+        ...
+    }
+
+    public function check(array $data)
+    {
+        ...
+        if (!$success) {
+            throw new RuntimeException(...);
+        }
+
+        ...
+    }
+
+This helps to keep the code flow simple and easy to follow.
 
 Typehinting
 -----------
@@ -430,7 +457,7 @@ PHP Tags
 ========
 
 Always use long tags (``<?php ?>``) instead of short tags (``<? ?>``). The short
-echo should be used in template files (**.ctp**) where appropriate.
+echo should be used in template files where appropriate.
 
 Short Echo
 ----------

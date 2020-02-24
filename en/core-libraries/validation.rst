@@ -29,14 +29,14 @@ validate::
 
     $validator
         ->requirePresence('title')
-        ->notEmpty('title', 'Please fill this field')
+        ->notEmptyString('title', 'Please fill this field')
         ->add('title', [
             'length' => [
                 'rule' => ['minLength', 10],
                 'message' => 'Titles need to be at least 10 characters long',
             ]
         ])
-        ->allowEmpty('published')
+        ->allowEmptyDateTime('published')
         ->add('published', 'boolean', [
             'rule' => 'boolean'
         ])
@@ -90,35 +90,49 @@ If you have multiple fields that are required, you can define them as a list::
         ]
     ]);
 
-.. versionadded:: 3.3.0
-    ``requirePresence()`` accepts an array of fields as of 3.3.0
-
 Allowing Empty Fields
 ---------------------
 
-The ``allowEmpty()`` and ``notEmpty()`` methods allow you to control which
-fields are allowed to be 'empty'. By using the ``notEmpty()`` method, the given
-field will be marked invalid when it is empty. You can use ``allowEmpty()`` to
-allow a field to be empty. Both ``allowEmpty()`` and ``notEmpty()`` support a
-mode parameter that allows you to control when a field can or cannot be empty:
+Validators offer several methods to control which fields accept empty values and
+which empty values are accepted and not forwarded to other validation rules for
+the named field. CakePHP provides empty value support for five different shapes
+of data:
+
+#. ``allowEmptyString()`` Should be used when you want to only accept
+   an empty string.
+#. ``allowEmptyArray()`` Should be used when you want to accept an array.
+#. ``allowEmptyDate()`` Should be used when you want to accept an empty string,
+   or an array that is marshalled into a date field.
+#. ``allowEmptyTime()`` Should be used when you want to accept an empty string,
+   or an array that is marshalled into a time field.
+#. ``allowEmptyDateTime()`` Should be used when you want to accept an empty
+   string or an array that is marshalled into a datetime or timestamp field.
+#. ``allowEmptyFile()`` Should be used when you want to accept an array that
+   is contains an empty uploaded file.
+
+You can also use ``notEmpty()`` to mark a field invalid if any 'empty' value is
+used. In general, it is recommended that you do not use ``notEmpty()`` and use more
+specific validators instead: ``notEmptyString()``, ``notEmptyArray()``, ``notEmptyFile()``, ``notEmptyDate()``, ``notEmptyTime()``, ``notEmptyDateTime()``.
+
+The ``allowEmpty*`` methods support a ``when`` parameter that allows you to control
+when a field can or cannot be empty:
 
 * ``false`` The field is not allowed to be empty.
 * ``create`` The field can be empty when validating a **create**
   operation.
 * ``update`` The field can be empty when validating an **update**
   operation.
-
-The values ``''``, ``null`` and ``[]`` (empty array) will cause validation
-errors when fields are not allowed to be empty.  When fields are allowed to be
-empty, the values ``''``, ``null``, ``false``, ``[]``, ``0``, ``'0'`` are
-accepted.
+* A callback that returns ``true`` or ``false`` to indicate whether a field is
+  allowed to be empty. See the :ref:`conditional-validation` section for examples on
+  how to use this parameter.
 
 An example of these methods in action is::
 
-    $validator->allowEmpty('published')
-        ->notEmpty('title', 'Title cannot be empty')
-        ->notEmpty('body', 'Body cannot be empty', 'create')
-        ->allowEmpty('header_image', 'update');
+    $validator->allowEmptyDateTime('published')
+        ->allowEmptyString('title', 'Title cannot be empty', false)
+        ->allowEmptyString('body', 'Body cannot be empty', 'update')
+        ->allowEmptyFile('header_image', 'update');
+        ->allowEmptyDateTime('posted', 'update');
 
 Adding Validation Rules
 -----------------------
@@ -137,8 +151,7 @@ See the `Validator API documentation
 <https://api.cakephp.org/3.x/class-Cake.Validation.Validator.html>`_ for the
 full set of validator methods.
 
-.. versionadded:: 3.2
-    Rule building methods were added in 3.2.0
+.. _custom-validation-rules:
 
 Using Custom Validation Rules
 -----------------------------
@@ -201,8 +214,44 @@ Then ensure that your validation method has the second context parameter. ::
     }
 
 Closures should return boolean true if the validation passes. If it fails,
-return boolean false or for a custom error message return a string.
+return boolean false or for a custom error message return a string, see the
+:ref:`Conditional/Dynamic Error Messages <dynamic_validation_error_messages>`
+section for further details.
 
+.. _dynamic_validation_error_messages:
+
+Conditional/Dynamic Error Messages
+----------------------------------
+
+Validation rule methods, being it :ref:`custom callables <custom-validation-rules>`,
+or :ref:`methods supplied by providers <adding-validation-providers>`, can either
+return a boolean, indicating whether the validation succeeded, or they can return
+a string, which means that the validation failed, and that the returned string
+should be used as the error message.
+
+Possible existing error messages defined via the ``message`` option will be
+overwritten by the ones returned from the validation rule method::
+
+    $validator->add('length', 'custom', [
+        'rule' => function ($value, $context) {
+            if (!$value) {
+                return false;
+            }
+
+            if ($value < 10) {
+                return 'Error message when value is less than 10';
+            }
+
+            if ($value > 20) {
+                return 'Error message when value is greater than 20';
+            }
+
+            return true;
+        },
+        'message' => 'Generic error message used when `false` is returned'
+    ]);
+
+.. _conditional-validation:
 
 Conditional Validation
 ----------------------
@@ -223,21 +272,20 @@ not a particular rule should be applied::
     ]);
 
 You can access the other submitted field values using the ``$context['data']``
-array.
-The above example will make the rule for 'picture' optional depending on whether
-the value for ``show_profile_picture`` is empty. You could also use the
+array.  The above example will make the rule for 'picture' optional depending on
+whether the value for ``show_profile_picture`` is empty. You could also use the
 ``uploadedFile`` validation rule to create optional file upload inputs::
 
     $validator->add('picture', 'file', [
         'rule' => ['uploadedFile', ['optional' => true]],
     ]);
 
-The ``allowEmpty()``, ``notEmpty()`` and ``requirePresence()`` methods will also
+The ``allowEmpty*``, ``notEmpty()`` and ``requirePresence()`` methods will also
 accept a callback function as their last argument. If present, the callback
 determines whether or not the rule should be applied. For example, a field is
 sometimes allowed to be empty::
 
-    $validator->allowEmpty('tax', function ($context) {
+    $validator->allowEmptyString('tax', function ($context) {
         return !$context['data']['is_taxable'];
     });
 
@@ -264,11 +312,16 @@ conditions only::
 
 This would require the ``full_name`` field to be present only in case the user
 wants to create a subscription, while the ``email`` field would always be
-required, since it would also be needed when canceling a subscription.
+required.
 
-.. versionadded:: 3.1.1
-    The callable support for ``requirePresence()`` was added in 3.1.1
+The ``$context`` parameter passed to custom conditional callbacks contains the
+following keys:
 
+* ``data`` The data being validated.
+* ``newRecord`` a boolean indicating whether a new or existing record is being
+  validated.
+* ``field`` The current field being validated.
+* ``providers`` The validation providers attached to the current validator.
 
 
 Marking Rules as the Last to Run
@@ -295,6 +348,8 @@ a specific rule has failed, you can set the ``last`` option to ``true``::
 
 If the minLength rule fails in the example above, the maxLength rule will not be
 run.
+
+.. _adding-validation-providers:
 
 Adding Validation Providers
 ---------------------------
@@ -344,8 +399,6 @@ in the future, you can use the ``addDefaultProvider()`` method as follows::
     therefore **config/bootstrap.php** is the best place to set up your
     default providers.
 
-.. versionadded:: 3.5.0
-
 You can use the `Localized plugin <https://github.com/cakephp/localized>`_ to
 get providers based on countries. With this plugin, you'll be able to validate
 model fields, depending on a country, ie::
@@ -384,8 +437,6 @@ There are a few methods that are common to all classes, defined through the
 Nesting Validators
 ------------------
 
-.. versionadded:: 3.0.5
-
 When validating :doc:`/core-libraries/form` with nested data, or when working
 with models that contain array data types, it is necessary to validate the
 nested data you have. CakePHP makes it simple to add validators to specific
@@ -411,7 +462,7 @@ To validate the comments you would use a nested validator::
     $validator->addNestedMany('comments', $commentValidator);
 
     // Get all errors including those from nested validators.
-    $validator->errors($data);
+    $validator->validate($data);
 
 You can create 1:1 'relationships' with ``addNested()`` and 1:N 'relationships'
 with ``addNestedMany()``. With both methods, the nested validator's errors will
@@ -427,9 +478,6 @@ conditional application::
     );
 
 The error message for a nested validator can be found in the ``_nested`` key.
-
-.. versionadded:: 3.6.0
-    message and conditions for nested validators were added.
 
 .. _reusable-validators:
 
@@ -476,7 +524,7 @@ sending an email you could do the following::
         ->requirePresence('comment')
         ->notEmpty('comment', 'You need to give a comment.');
 
-    $errors = $validator->errors($this->request->getData());
+    $errors = $validator->validate($this->request->getData());
     if (empty($errors)) {
         // Send an email.
     }
@@ -493,7 +541,7 @@ be returned per field. By default the ``errors()`` method applies rules for
 the 'create' mode. If you'd like to apply 'update' rules you can do the
 following::
 
-    $errors = $validator->errors($this->request->getData(), false);
+    $errors = $validator->validate($this->request->getData(), false);
     if (empty($errors)) {
         // Send an email.
     }

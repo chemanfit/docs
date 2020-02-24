@@ -12,7 +12,7 @@ avoided in CakePHP, and instead usage of the Session classes is preferred.
 Session Configuration
 =====================
 
-Session configuration is generally defined in ``/config/app.php``. The available
+Session configuration is generally defined in **/config/app.php**. The available
 options are:
 
 * ``Session.timeout`` - The number of *minutes* before CakePHP's session
@@ -30,7 +30,8 @@ options are:
   config. This combined with ``Session.handler`` replace the custom session
   handling features of previous versions
 
-* ``Session.cookie`` - The name of the cookie to use. Defaults to 'CAKEPHP'.
+* ``Session.cookie`` - The name of the cookie to use. Defaults to value set for
+  ``session.name`` php.ini config.
 
 * ``Session.cookiePath`` - The url path for which session cookie is set. Maps to
   the ``session.cookie_path`` php.ini config. Defaults to base path of app.
@@ -45,6 +46,17 @@ this::
         'defaults' => 'php',
         'ini' => [
             'session.cookie_secure' => false
+        ]
+    ]);
+
+As of v4.0 CakePHP also sets the `SameSite <https://www.owasp.org/index.php/SameSite>`__ attribute to ``Lax``
+by default for session cookies, which helps protect against CSRF attacks.
+You can change the default value by setting ``session.cookie_samesite`` php.ini config::
+
+    Configure::write('Session', [
+        'defaults' => 'php',
+        'ini' => [
+            'session.cookie_samesite' => 'Strict'
         ]
     ]);
 
@@ -138,15 +150,11 @@ You can then read those values out from inside your handler::
 
 The above shows how you could setup the Database session handler with an
 application model. When using class names as your handler.engine, CakePHP will
-expect to find your class in the ``Network\Session`` namespace. For example, if
+expect to find your class in the ``Http\Session`` namespace. For example, if
 you had an ``AppSessionHandler`` class,  the file should be
 **src/Http/Session/AppSessionHandler.php**, and the class name should be
 ``App\Http\Session\AppSessionHandler``. You can also use session handlers
 from inside plugins. By setting the engine to ``MyPlugin.PluginSessionHandler``.
-
-.. note::
-    Prior to 3.6.0 session adapter files should be placed in
-    **src/Network/Session/AppHandler.php**.
 
 Database Sessions
 -----------------
@@ -168,7 +176,7 @@ This configuration requires a database table, having this schema::
     PRIMARY KEY (`id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-You can find a copy of the schema for the sessions table in the `application skeleton <https://github.com/cakephp/app>`_ in ``config/schema/sessions.sql``.
+You can find a copy of the schema for the sessions table in the `application skeleton <https://github.com/cakephp/app>`_ in **config/schema/sessions.sql**.
 
 You can also use your own ``Table`` class to handle the saving of the sessions::
 
@@ -288,8 +296,8 @@ Our class extends the built-in ``DatabaseSession`` so we don't have to duplicate
 all of its logic and behavior. We wrap each operation with
 a :php:class:`Cake\\Cache\\Cache` operation. This lets us fetch sessions from
 the fast cache, and not have to worry about what happens when we fill the cache.
-Using this session handler is also easy. In your **app.php** make the session
-block look like the following::
+Using this session handler is also easy. In **config/app.php** make the session
+block look like::
 
     'Session' => [
         'defaults' => 'database',
@@ -327,7 +335,6 @@ In addition to the basic session object, you can also use the
 :php:class:`Cake\\View\\Helper\\SessionHelper` to interact with the session in
 your views. A basic example of session usage would be::
 
-    // Prior to 3.6.0 use session() instead.
     $name = $this->getRequest()->getSession()->read('User.name');
 
     // If you are accessing the session multiple times,
@@ -410,8 +417,8 @@ Flash messages are small messages displayed to end users once. They are often
 used to present error messages, or confirm that actions took place successfully.
 
 To set and display flash messages you should use
-:doc:`/controllers/components/flash` and
-:doc:`/views/helpers/flash`
+:doc:`FlashComponent </controllers/components/flash>` and
+:doc:`FlashHelper </views/helpers/flash>`
 
 .. meta::
     :title lang=en: Sessions

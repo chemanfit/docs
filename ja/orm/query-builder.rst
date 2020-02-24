@@ -22,7 +22,9 @@ SQL インジェクション攻撃から守っています。
 のセクションを参照してください。 ::
 
     use Cake\ORM\TableRegistry;
-    $articles = TableRegistry::get('Articles');
+
+    // Prior to 3.6 use TableRegistry::get('Articles')
+    $articles = TableRegistry::getTableLocator()->get('Articles');
 
     // 新しいクエリーを始めます。
     $query = $articles->find();
@@ -40,7 +42,8 @@ SQL インジェクション攻撃から守っています。
 
     use Cake\ORM\TableRegistry;
 
-    $query = TableRegistry::get('Articles')->find();
+    // Prior to 3.6 use TableRegistry::get('Articles')
+    $query = TableRegistry::getTableLocator()->get('Articles')->find();
 
     foreach ($query as $article) {
         debug($article->title);
@@ -79,7 +82,7 @@ SQL が出力されます。 ::
     // ...
 
 ``foreach`` を使わずに、クエリーを直接実行することができます。もっとも簡単なのは
-``all()`` メソッドか ``toArray()`` メソッドのどちらかを呼ぶ方法です。 ::
+``all()`` メソッドか ``toList()`` メソッドのどちらかを呼ぶ方法です。 ::
 
     $resultsIteratorObject = $articles
         ->find()
@@ -93,7 +96,7 @@ SQL が出力されます。 ::
     $resultsArray = $articles
         ->find()
         ->where(['id >' => 1])
-        ->toArray();
+        ->toList();
 
     foreach ($resultsArray as $article) {
         debug($article->id);
@@ -106,7 +109,7 @@ SQL が出力されます。 ::
 
 多くの場合、 ``all()`` を呼ぶ必要はなく、単に Query オブジェクトをイテレートすることで、
 結果を得ることができます。Query オブジェクトはまた、結果オブジェクトとして直接使うこともできます。
-クエリーをイテレートしたり、 ``toArray()`` を呼んだり、
+クエリーをイテレートしたり、 ``toList()`` を呼んだり、
 :doc:`Collection </core-libraries/collections>` から継承したメソッドを呼んだりすると、
 クエリーは実行され、結果が返ります。
 
@@ -173,8 +176,8 @@ Query オブジェクトのメソッドに慣れたら、 :doc:`Collection </cor
         echo "$id : $trimmedTitle";
     }
 
-クエリーが遅延評価される仕組み
-------------------------------
+クエリーの遅延評価
+------------------
 
 Query オブジェクトは遅延評価されます。
 これはクエリーが次のいずれかが起こるまで実行されないということを意味します。
@@ -186,23 +189,19 @@ Query オブジェクトは遅延評価されます。
   を加えます) で構築された結果セットの最初の結果が返ります。
 - クエリーの ``all()`` メソッドが呼ばれる。結果セットが返り、
   ``SELECT`` ステートメントでのみ使うことができます。
-- クエリーの ``toArray()`` メソッドが呼ばれる。
+- クエリーの ``toList()`` や ``toArray()`` メソッドが呼ばれる。
 
 このような条件が合致するまでは、 SQL をデータベースへ送らずに、クエリーを変更することができます。
-つまり、 Query が評価サれないかぎり、SQL はデータベースへ送信されないのです。
+つまり、 Query が評価されないかぎり、SQL はデータベースへ送信されないのです。
 クエリーが実行された後に、クエリーを変更・再評価したら、追加で SQL が走ることになります。
 
 CakePHP が生成している SQL がどんなものか見たいなら、
 :ref:`クエリーロギング <database-query-logging>` を on にしてください。
 
-次のセクションでは SQL 文を構築し、データを取り出すための Query オブジェクトのメソッドを使ったり、
-組み合わせたりする方法について見ていきましょう。
-
 データを select する
 ====================
 
-多くのウェブアプリケーションは ``SELECT`` クエリーを多用します。
-CakePHP ではこれらを簡単につくれます。フェッチする列を制限するのには、
+CakePHP では ``SELECT`` クエリーを簡単につくれます。取得するフィールドを制限するのには、
 ``select()`` メソッドを使います。 ::
 
     $query = $articles->find();
@@ -211,20 +210,20 @@ CakePHP ではこれらを簡単につくれます。フェッチする列を制
         debug($row->title);
     }
 
-連想配列で列を渡すことで列のエイリアス (別名) をセットすることができます。 ::
+連想配列でフィールドを渡すことでフィールドのエイリアス (別名) をセットすることができます。 ::
 
     // SELECT id AS pk, title AS aliased_title, body ... になる
     $query = $articles->find();
     $query->select(['pk' => 'id', 'aliased_title' => 'title', 'body']);
 
-列を select distinct するために、 ``distinct()`` メソッドを使うことができます。 ::
+フィールドを select distinct するために、 ``distinct()`` メソッドを使うことができます。 ::
 
     // SELECT DISTINCT country FROM ... になる
     $query = $articles->find();
     $query->select(['country'])
         ->distinct(['country']);
 
-基本の条件をセットするには、``where()`` メソッドを使うことができます。 ::
+基本の条件をセットするには、 ``where()`` メソッドを使うことができます。 ::
 
     // 条件は AND で連結されます
     $query = $articles->find();
@@ -234,6 +233,15 @@ CakePHP ではこれらを簡単につくれます。フェッチする列を制
     $query = $articles->find();
     $query->where(['title' => 'First Post'])
         ->where(['published' => true]);
+
+無名関数を ``where()`` メソッドに渡すこともできます。渡された無名関数は、第一引数として
+``\Cake\Database\Expression\QueryExpression`` のインスタンス、第二引数として
+``\Cake\ORM\Query`` を受け取ります。 ::
+
+    $query = $articles->find();
+    $query->where(function (QueryExpression $exp, Query $q) {
+        return $exp->eq('published', true);
+    });
 
 さらに複雑な ``WHERE`` 条件の作り方を知りたい場合は :ref:`advanced-query-conditions`
 のセクションをご覧ください。ソート順を適用するために、 ``order`` メソッドが使用できます。 ::
@@ -275,26 +283,39 @@ CakePHP ではこれらを簡単につくれます。フェッチする列を制
 上記の例にあるように、クエリーを変更するすべてのメソッドは流暢 (fluent)
 なインターフェイスを提供しますので、クエリーを構築する際にチェーンメソッドの形で呼び出すことができます。
 
-テーブルからすべての列を select する
-------------------------------------
+特定のフィールドを選択
+----------------------
 
-クエリーはデフォルトで table のすべての列を select します。
-例外となるのは ``select()`` 関数をあえて呼び、特定の列を指定した場合だけです。 ::
+クエリーはデフォルトでテーブルのすべてのフィールドを選択します。
+例外となるのは ``select()`` 関数をあえて呼び、特定のフィールドを指定した場合だけです。 ::
 
-    // articles テーブルから id と title だけが select される
+    // articles テーブルから id と title だけが選択される
     $articles->find()->select(['id', 'title']);
 
-``select($fields)`` を呼んで、なおもテーブルのすべての列を select したいなら、
+``select($fields)`` を呼んで、なおもテーブルのすべてのフィールドを選択したいなら、
 次の方法でテーブルインスタンスを ``select()`` に渡すことができます。 ::
 
-    // 計算された slug 列を含めて、 articles テーブルのすべての列を取得
+    // 計算された slug フィールドを含む、 articles テーブルのすべてのフィールドを取得
     $query = $articlesTable->find();
     $query
         ->select(['slug' => $query->func()->concat(['title' => 'identifier', '-', 'id' => 'identifier'])])
-        ->select($articlesTable); // articles のすべての列を select する
+        ->select($articlesTable); // articles のすべてのフィールドを選択する
 
 .. versionadded:: 3.1
     テーブルオブジェクトを select() に渡すのは 3.1 で追加されました。
+
+テーブル上のいくつかのフィールド以外のすべてのフィールドを選択したい場合には
+``selectAllExcept()`` を使用できます。 ::
+
+    $query = $articlesTable->find();
+
+    // published フィールドを除く全てのフィールドを取得
+    $query->selectAllExcept($articlesTable, ['published']);
+
+アソシエーションが含まれる場合、 ``Association`` オブジェクトを渡すこともできます。
+
+.. versionadded:: 3.6.0
+    ``selectAllExcept()`` メソッドが追加されました。
 
 .. _using-sql-functions:
 
@@ -356,7 +377,7 @@ SQL 関数に渡す引数には、リテラルの引数と、バインドパラ�
 
 クエリーが実行される際には、 ``:c0`` という値に ``' - CAT'`` というテキストがバインドされることになります。
 
-上記の関数に加え、``func()`` メソッドは ``year``、 ``date_format``、 ``convert`` などといった、
+上記の関数に加え、 ``func()`` メソッドは ``year`` 、 ``date_format`` 、 ``convert`` などといった、
 一般的な SQL 関数を構築するのに使います。
 たとえば::
 
@@ -373,17 +394,19 @@ SQL 関数に渡す引数には、リテラルの引数と、バインドパラ�
         'timeCreated' => $time
     ]);
 
-このようになります。 ::
+このようになります。
+
+.. code-block:: mysql
 
     SELECT YEAR(created) as yearCreated, DATE_FORMAT(created, '%H:%i') as timeCreated FROM articles;
 
-安全ではないデータを、 SQL 関数やストアドプロシージャに渡す必要がある際には必ず、
+安全ではないデータを、 SQL 関数やストアードプロシージャーに渡す必要がある際には必ず、
 関数ビルダーを使うということを覚えておいてください。 ::
 
-    // ストアドプロシージャを使う
+    // ストアードプロシージャーを使う
     $query = $articles->find();
     $lev = $query->func()->levenshtein([$search, 'LOWER(title)' => 'literal']);
-    $query->where(function ($exp) use ($lev) {
+    $query->where(function (QueryExpression $exp) use ($lev) {
         return $exp->between($lev, 0, $tolerance);
     });
 
@@ -412,7 +435,9 @@ ORM ではまた、 SQL の ``case`` 式も使えます。 ``case`` 式により
 状況や、条件に基いてデータを特定しなければならない状況で、データを出力するのに便利です。
 
 公開済みの記事（published articles）がデータベース内にいくつあるのか知りたい場合、次の
-SQL を使用することができます。 ::
+SQL を使用することができます。
+
+.. code-block:: sql
 
     SELECT
     COUNT(CASE WHEN published = 'Y' THEN 1 END) AS number_published,
@@ -447,7 +472,7 @@ SQL を使用することができます。 ::
 次のようになります。 ::
 
     $query = $cities->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->addCase(
                 [
                     $q->newExpr()->lt('population', 100000),
@@ -468,7 +493,7 @@ SQL を使用することができます。 ::
 ``if .. then .. else`` 文を作成します。 ::
 
     $query = $cities->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->addCase(
                 [
                     $q->newExpr()->eq('population', 0),
@@ -489,7 +514,7 @@ ORM とオブジェクトの結果セットは強力である一方で、エン�
 もし、この処理を無効化したい場合、このようにします。 ::
 
     $query = $articles->find();
-    $query->hydrate(false); // エンティティーの代わりに配列を返す
+    $query->enableHydration(false); // エンティティーの代わりに配列を返す
     $result = $query->toList(); // クエリーを実行し、配列を返す
 
 これらの行を実行した後、結果はこのようになります。 ::
@@ -558,8 +583,8 @@ CakePHP は計算された値が正しい Entity にセットされることを�
 ==========
 
 クエリービルダーは複雑な ``where`` 句の構築を簡単にします。
-``where()`` や ``andWhere()``、 ``orWhere()`` を使うことで、
-複数条件のグルーピングも表現できます。 ::
+グループ化された条件は、 ``where()`` と Expression オブジェクトを組み合わせることで表現できます。
+単純なクエリーの場合、条件の配列を使用して条件を作成できます。 ::
 
     $query = $articles->find()
         ->where([
@@ -567,34 +592,30 @@ CakePHP は計算された値が正しい Entity にセットされることを�
             'OR' => [['view_count' => 2], ['view_count' => 3]],
         ]);
 
-上記は次のような SQL を生成します。 ::
+上記は次のような SQL を生成します。
+
+.. code-block:: sql
 
     SELECT * FROM articles WHERE author_id = 3 AND (view_count = 2 OR view_count = 3)
 
-深くネストした配列を使いたくないなら、クエリーをビルドするのに ``orWhere()`` と ``andWhere()``
-メソッドを使うことができます。各メソッドは今の条件と前の条件をつなぐ演算子をセットします。たとえば::
+深くネストされた配列を避けたい場合は、 ``where()`` のコールバック形式を使用して
+クエリーを構築することができます。コールバック形式を使用すると、
+式ビルダーを使用して配列なしでより複雑な条件を作成できます。例::
 
-    $query = $articles->find()
-        ->where(['author_id' => 2])
-        ->orWhere(['author_id' => 3]);
+    $query = $articles->find()->where(function ($exp, $query) {
+        // 同一フィールドに複数条件を追加するために add() を使用
+        $author = $exp->or(['author_id' => 3])->add(['author_id' => 2]);
+        $published = $exp->and(['published' => true, 'view_count' => 10]);
 
-上記は次のような SQL を出力します。 ::
+        return $exp->or([
+            'promoted' => true,
+            $exp->and([$author, $published])
+        ]);
+    });
 
-    SELECT * FROM articles WHERE (author_id = 2 OR author_id = 3)
+上記は次のような SQL を出力します。
 
-``orWhere()`` と ``andWhere()`` を組み合わせることで、演算子を組み合わせるような複雑な条件を
-表現できます。 ::
-
-    $query = $articles->find()
-        ->where(['author_id' => 2])
-        ->orWhere(['author_id' => 3])
-        ->andWhere([
-            'published' => true,
-            'view_count >' => 10
-        ])
-        ->orWhere(['promoted' => true]);
-
-上記は次のような SQL を出力します。 ::
+.. code-block:: sql
 
     SELECT *
     FROM articles
@@ -607,40 +628,18 @@ CakePHP は計算された値が正しい Entity にセットされることを�
         OR promoted = 1
     )
 
-関数を引数にして ``orWhere()`` と ``andWhere()`` を使うことで、
-Expression オブジェクトを条件文に加えることができます。 ::
-
-    $query = $articles->find()
-        ->where(['title LIKE' => '%First%'])
-        ->andWhere(function ($exp) {
-            return $exp->or_([
-                'author_id' => 2,
-                'is_highlighted' => true
-            ]);
-        });
-
-上記の SQL は下記のようになります。 ::
-
-    SELECT *
-    FROM articles
-    WHERE (
-        title LIKE '%First%'
-        AND
-        (author_id = 2 OR is_highlighted = 1)
-    )
-
 ``where()`` 関数に渡される Expression オブジェクトには２種類のメソッドがあります。
-１種類目のメソッドは **結合子** (and や or) です。 ``and_()`` と ``or_()`` メソッドは条件が
+１種類目のメソッドは **結合子** (and や or) です。 ``and()`` と ``or()`` メソッドは条件が
 **どう** 結合されるかが変更された新しい Expression オブジェクトを作成します。２種類目のメソッドは
 **条件** です。条件は、現在の結合子を使って結合され、Expression オブジェクトに追加されます。
 
-たとえば、 ``$exp->and_(...)`` を呼ぶと、そこに含まれるすべての条件が ``AND`` で結合された、
-新しい ``Expression`` オブジェクトが作成されます。 ``$exp->or_()`` の場合は 、
+たとえば、 ``$exp->and(...)`` を呼ぶと、そこに含まれるすべての条件が ``AND`` で結合された、
+新しい ``Expression`` オブジェクトが作成されます。 ``$exp->or()`` の場合は 、
 そこに含まれるすべての条件が ``OR`` で結合された、新しい ``Expression`` オブジェクトが作成されます。
 ``Expression`` object で条件を追加する例は次のようになります。 ::
 
     $query = $articles->find()
-        ->where(function ($exp) {
+        ->where(function (QueryExpression $exp) {
             return $exp
                 ->eq('author_id', 2)
                 ->eq('published', true)
@@ -648,8 +647,10 @@ Expression オブジェクトを条件文に加えることができます。 ::
                 ->gt('view_count', 10);
         });
 
-``where()`` を使い始めた場合、 ``and_()`` は暗黙的に選ばれているため、それを呼ぶ必要はありません。
-上記の例では新たな条件がいくつか ``AND`` で結合されています。結果の SQL は次のようになります。 ::
+``where()`` を使い始めた場合、 ``and()`` は暗黙的に選ばれているため、それを呼ぶ必要はありません。
+上記の例では新たな条件がいくつか ``AND`` で結合されています。結果の SQL は次のようになります。
+
+.. code-block:: sql
 
     SELECT *
     FROM articles
@@ -667,8 +668,8 @@ Expression オブジェクトを条件文に加えることができます。 ::
 ただし、 ``AND`` と ``OR`` の両方を使いたいなら、次のようにすることもできます。 ::
 
     $query = $articles->find()
-        ->where(function ($exp) {
-            $orConditions = $exp->or_(['author_id' => 2])
+        ->where(function (QueryExpression $exp) {
+            $orConditions = $exp->or(['author_id' => 2])
                 ->eq('author_id', 5);
             return $exp
                 ->add($orConditions)
@@ -676,7 +677,9 @@ Expression オブジェクトを条件文に加えることができます。 ::
                 ->gte('view_count', 10);
         });
 
-これは下記のような SQL を生成します。 ::
+これは下記のような SQL を生成します。
+
+.. code-block:: sql
 
     SELECT *
     FROM articles
@@ -685,12 +688,12 @@ Expression オブジェクトを条件文に加えることができます。 ::
     AND published = 1
     AND view_count >= 10)
 
-``or_()`` と ``and_()`` メソッドはまた、それらの引数に関数も渡せるようになっています。
+``or()`` と ``and()`` メソッドはまた、それらの引数に関数も渡せるようになっています。
 これはメソッドをチェーンさせる際に可読性を上げられることが良く有ります。 ::
 
     $query = $articles->find()
-        ->where(function ($exp) {
-            $orConditions = $exp->or_(function ($or) {
+        ->where(function (QueryExpression $exp) {
+            $orConditions = $exp->or(function ($or) {
                 return $or->eq('author_id', 2)
                     ->eq('author_id', 5);
             });
@@ -702,15 +705,17 @@ Expression オブジェクトを条件文に加えることができます。 ::
 ``not()`` を使って式を否定することができます。 ::
 
     $query = $articles->find()
-        ->where(function ($exp) {
-            $orConditions = $exp->or_(['author_id' => 2])
+        ->where(function (QueryExpression $exp) {
+            $orConditions = $exp->or(['author_id' => 2])
                 ->eq('author_id', 5);
             return $exp
                 ->not($orConditions)
                 ->lte('view_count', 10);
         });
 
-これは下記のような SQL を生成します。 ::
+これは下記のような SQL を生成します。
+
+.. code-block:: sql
 
     SELECT *
     FROM articles
@@ -721,7 +726,7 @@ Expression オブジェクトを条件文に加えることができます。 ::
 SQL 関数を使った式を構築することも可能です。 ::
 
     $query = $articles->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             $year = $q->func()->year([
                 'created' => 'identifier'
             ]);
@@ -730,7 +735,9 @@ SQL 関数を使った式を構築することも可能です。 ::
                 ->eq('published', true);
         });
 
-これは下記のような SQL を生成します。 ::
+これは下記のような SQL を生成します。
+
+.. code-block:: sql
 
     SELECT *
     FROM articles
@@ -744,7 +751,7 @@ Expression オブジェクトを使う際、下記のメソッド使って条件
 - ``eq()`` 等号の条件を作成します。 ::
 
     $query = $cities->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->eq('population', '10000');
         });
     # WHERE population = 10000
@@ -752,7 +759,7 @@ Expression オブジェクトを使う際、下記のメソッド使って条件
 - ``notEq()`` 不等号の条件を作成します。 ::
 
     $query = $cities->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->notEq('population', '10000');
         });
     # WHERE population != 10000
@@ -760,7 +767,7 @@ Expression オブジェクトを使う際、下記のメソッド使って条件
 - ``like()`` ``LIKE`` 演算子を使った条件を作成します。 ::
 
     $query = $cities->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->like('name', '%A%');
         });
     # WHERE name LIKE "%A%"
@@ -768,7 +775,7 @@ Expression オブジェクトを使う際、下記のメソッド使って条件
 - ``notLike()`` ``LIKE`` 条件の否定を作成します。 ::
 
     $query = $cities->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->notLike('name', '%A%');
         });
     # WHERE name NOT LIKE "%A%"
@@ -776,7 +783,7 @@ Expression オブジェクトを使う際、下記のメソッド使って条件
 - ``in()`` ``IN`` を使った条件を作成します。 ::
 
     $query = $cities->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->in('country_id', ['AFG', 'USA', 'EST']);
         });
     # WHERE country_id IN ('AFG', 'USA', 'EST')
@@ -784,7 +791,7 @@ Expression オブジェクトを使う際、下記のメソッド使って条件
 - ``notIn()`` ``IN`` を使った条件の否定を作成します。 ::
 
     $query = $cities->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->notIn('country_id', ['AFG', 'USA', 'EST']);
         });
     # WHERE country_id NOT IN ('AFG', 'USA', 'EST')
@@ -792,7 +799,7 @@ Expression オブジェクトを使う際、下記のメソッド使って条件
 - ``gt()`` ``>`` の条件を作成します。 ::
 
     $query = $cities->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->gt('population', '10000');
         });
     # WHERE population > 10000
@@ -800,7 +807,7 @@ Expression オブジェクトを使う際、下記のメソッド使って条件
 - ``gte()`` ``>=`` の条件を作成します。 ::
 
     $query = $cities->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->gte('population', '10000');
         });
     # WHERE population >= 10000
@@ -808,7 +815,7 @@ Expression オブジェクトを使う際、下記のメソッド使って条件
 - ``lt()`` ``<`` の条件を作成します。 ::
 
     $query = $cities->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->lt('population', '10000');
         });
     # WHERE population < 10000
@@ -816,7 +823,7 @@ Expression オブジェクトを使う際、下記のメソッド使って条件
 - ``lte()`` ``<=`` の条件を作成します。 ::
 
     $query = $cities->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->lte('population', '10000');
         });
     # WHERE population <= 10000
@@ -824,7 +831,7 @@ Expression オブジェクトを使う際、下記のメソッド使って条件
 - ``isNull()`` ``IS NULL`` の条件を作成します。 ::
 
     $query = $cities->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->isNull('population');
         });
     # WHERE (population) IS NULL
@@ -832,7 +839,7 @@ Expression オブジェクトを使う際、下記のメソッド使って条件
 - ``isNotNull()`` ``IS NULL`` の条件の否定を作成します。 ::
 
     $query = $cities->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->isNotNull('population');
         });
     # WHERE (population) IS NOT NULL
@@ -840,7 +847,7 @@ Expression オブジェクトを使う際、下記のメソッド使って条件
 - ``between()`` ``BETWEEN`` の条件を作成します。 ::
 
     $query = $cities->find()
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->between('population', 999, 5000000);
         });
     # WHERE population BETWEEN 999 AND 5000000,
@@ -849,13 +856,13 @@ Expression オブジェクトを使う際、下記のメソッド使って条件
 
     $subquery = $cities->find()
         ->select(['id'])
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->equalFields('countries.id', 'cities.country_id');
         })
-        ->andWhere(['population >', 5000000]);
+        ->andWhere(['population >' => 5000000]);
 
     $query = $countries->find()
-        ->where(function ($exp, $q) use ($subquery) {
+        ->where(function (QueryExpression $exp, Query $q) use ($subquery) {
             return $exp->exists($subquery);
         });
     # WHERE EXISTS (SELECT id FROM cities WHERE countries.id = cities.country_id AND population > 5000000)
@@ -864,10 +871,10 @@ Expression オブジェクトを使う際、下記のメソッド使って条件
 
     $subquery = $cities->find()
         ->select(['id'])
-        ->where(function ($exp, $q) {
+        ->where(function (QueryExpression $exp, Query $q) {
             return $exp->equalFields('countries.id', 'cities.country_id');
         })
-        ->andWhere(['population >', 5000000]);
+        ->andWhere(['population >' => 5000000]);
 
     $query = $countries->find()
         ->where(function ($exp, $q) use ($subquery) {
@@ -886,6 +893,28 @@ WHERE 句の中で SQL スニペットを使えるようにもできます。 ::
     式 (expression) の中で使われる列名や SQL スニペットには安全性が確実でない内容を
     **絶対に含めてはいけません** 。関数の呼び出しで、安全でないデータを安全に渡す
     方法については :ref:`using-sql-functions` のセクションを参照してください。
+
+式の中で識別子を使用する
+------------------------
+
+クエリーの中でカラムや SQL 識別子を参照する必要がある場合、
+``identifier()`` メソッドが使用できます。 ::
+
+    $query = $countries->find();
+    $query->select([
+            'year' => $query->func()->year([$query->identifier('created')])
+        ])
+        ->where(function ($exp, $query) {
+            return $exp->gt('population', 100000);
+        });
+
+.. warning::
+
+    SQL インジェクションを防ぐため、識別子の式には信頼できないデータを渡すべきではありません。
+
+.. versionadded:: 3.6.0
+
+    ``Query::identifier()`` は 3.6.0 で追加されました。
 
 IN 句を自動生成する
 -------------------
@@ -936,6 +965,7 @@ IS NOT NULL を自動生成する
 上記は ``$parentId`` の型に応じて ``parent_id` != :c1`` もしくは ``parent_id IS NOT NULL``
 が自動的に作成されます。
 
+
 未加工の式
 ----------
 
@@ -946,13 +976,13 @@ SQL の断片をクエリーに追加することができます。 ::
     $expr = $query->newExpr()->add('1 + 1');
     $query->select(['two' => $expr]);
 
-``Expression`` オブジェクトは ``where()``、 ``limit()``。 ``group()``、 ``select()``
+``Expression`` オブジェクトは ``where()`` 、 ``limit()`` 。 ``group()`` 、 ``select()``
 等のようなクエリービルダーのメソッドで使うことができます。
 
 .. warning::
 
     Expression オブジェクトを使うと SQL インジェクションに対して脆弱になります。
-    ユーザーデータが式の中に注入されないようにしてください。
+    式の中で信頼できないデータを使用しないでください。
 
 結果を取得する
 ==============
@@ -1068,12 +1098,12 @@ CakePHP のページネーション (pagination) システムでは ``count()`` 
 
 キャッシュ設定されたクエリーが結果を返すときには次のようなことが起こります:
 
-1. ``Model.beforeFind`` イベントがトリガーされます。
-2. クエリーが結果セットを保持しているなら、それを返します。
-3. キャッシュキーを解決して、キャッシュデータを読みす。
+1. クエリーが結果セットを保持しているなら、それを返します。
+2. キャッシュキーを解決して、キャッシュデータを読みす。
    キャッシュデータが空でなければ、その結果を返します。
-4. キャッシュが無いなら、クエリーが実行され、新しい ``ResultSet`` が作成されます。
-   この ``ResultSet`` をキャッシュに登録し、返します。
+3. キャッシュが見つからない場合、クエリが実行され、 ``Model.beforeFind``
+   イベントがトリガーされ、新しい ``ResultSet`` が作成されます。
+   この ``ResultSet`` はキャッシュに書き込まれ、返されます。
 
 .. note::
 
@@ -1107,7 +1137,6 @@ Join を追加する
 追加の join をクエリービルダーに加えることもできます。 ::
 
     $query = $articles->find()
-        ->hydrate(false)
         ->join([
             'table' => 'comments',
             'alias' => 'c',
@@ -1118,7 +1147,6 @@ Join を追加する
 複数 join の連想配列を渡すことで、複数の join を一度に追加できます。 ::
 
     $query = $articles->find()
-        ->hydrate(false)
         ->join([
             'c' => [
                 'table' => 'comments',
@@ -1136,7 +1164,6 @@ Join を追加する
 join の条件も条件の配列と同じように表現できます。 ::
 
     $query = $articles->find()
-        ->hydrate(false)
         ->join([
             'c' => [
                 'table' => 'comments',
@@ -1294,7 +1321,7 @@ ORM とデータベースの抽象層では、ほとんどの SQL インジェ�
 
 Expression ビルダーを使う際には、カラム名にユーザーデータを含めてはいけません。 ::
 
-    $query->where(function ($exp) use ($userData, $values) {
+    $query->where(function (QueryExpression $exp) use ($userData, $values) {
         // いずれの式 (expression) の中であってもカラム名は安全ではありません
         return $exp->in($userData, $values);
     });
@@ -1369,7 +1396,8 @@ UNION は１つ以上のクエリーを一緒に構築して作成します。 :
 サブクエリーはリレーショナル・データベースにおいて強力な機能であり、CakePHP ではそれを実に直感的に
 構築することができます。クエリーを一緒に構築することで、サブクエリーを作ることができます。 ::
 
-    $matchingComment = $articles->association('Comments')->find()
+    // 3.6.0 より前は、代わりに association() を使用
+    $matchingComment = $articles->getAssociation('Comments')->find()
         ->select(['article_id'])
         ->distinct()
         ->where(['comment LIKE' => '%CakePHP%']);

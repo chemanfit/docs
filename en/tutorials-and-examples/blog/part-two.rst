@@ -23,7 +23,7 @@ look like this::
 
     class ArticlesTable extends Table
     {
-        public function initialize(array $config)
+        public function initialize(array $config): void
         {
             $this->addBehavior('Timestamp');
         }
@@ -86,7 +86,6 @@ articles. The code for that action would look like this::
 
     class ArticlesController extends AppController
     {
-
         public function index()
         {
             $articles = $this->Articles->find('all');
@@ -145,14 +144,14 @@ Remember in the last section how we assigned the 'articles' variable
 to the view using the ``set()`` method? That would hand down the query
 object collection to the view to be invoked with a ``foreach`` iteration.
 
-CakePHP's template files are stored in **src/Template** inside a folder
+CakePHP's template files are stored in **templates** inside a folder
 named after the controller they correspond to (we'll have to create
 a folder named 'Articles' in this case). To format this article data in a
 nice table, our view code might look something like this:
 
 .. code-block:: php
 
-    <!-- File: src/Template/Articles/index.ctp -->
+    <!-- File: templates/Articles/index.php -->
 
     <h1>Blog articles</h1>
     <table>
@@ -212,7 +211,6 @@ you are very sneaky. Otherwise, we'll create it in the
 
     class ArticlesController extends AppController
     {
-
         public function index()
         {
              $this->set('articles', $this->Articles->find('all'));
@@ -241,11 +239,11 @@ present in the database, or the id is false the ``get()`` function will throw
 a ``NotFoundException``.
 
 Now let's create the view for our new 'view' action and place it in
-**src/Template/Articles/view.ctp**
+**templates/Articles/view.php**
 
 .. code-block:: php
 
-    <!-- File: src/Template/Articles/view.ctp -->
+    <!-- File: templates/Articles/view.php -->
 
     <h1><?= h($article->title) ?></h1>
     <p><?= h($article->body) ?></p>
@@ -272,8 +270,7 @@ First, start by creating an ``add()`` action in the
 
     class ArticlesController extends AppController
     {
-
-        public function initialize()
+        public function initialize(): void
         {
             parent::initialize();
 
@@ -293,9 +290,8 @@ First, start by creating an ``add()`` action in the
 
         public function add()
         {
-            $article = $this->Articles->newEntity();
+            $article = $this->Articles->newEmptyEntity();
             if ($this->request->is('post')) {
-                // Prior to 3.4.0 $this->request->data() was used.
                 $article = $this->Articles->patchEntity($article, $this->request->getData());
                 if ($this->Articles->save($article)) {
                     $this->Flash->success(__('Your article has been saved.'));
@@ -324,7 +320,7 @@ application.  In this case, we use the :php:meth:`Cake\\Http\\ServerRequest::is(
 method to check that the request is a HTTP POST request.
 
 When a user uses a form to POST data to your application, that
-information is available in ``$this->request->getData()`` ( Or ``$this->request->data()`` for CakePHP v3.3 and under ). You can use the
+information is available in ``$this->request->getData()``. You can use the
 :php:func:`pr()` or :php:func:`debug()` functions to print it out if you want to
 see what it looks like.
 
@@ -361,7 +357,7 @@ Here's our add view:
 
 .. code-block:: php
 
-    <!-- File: src/Template/Articles/add.ctp -->
+    <!-- File: templates/Articles/add.php -->
 
     <h1>Add Article</h1>
     <?php
@@ -395,7 +391,7 @@ field specified.
 The ``$this->Form->end()`` call ends the form. Outputting hidden inputs if
 CSRF/Form Tampering prevention is enabled.
 
-Now let's go back and update our **src/Template/Articles/index.ctp**
+Now let's go back and update our **templates/Articles/index.php**
 view to include a new "Add Article" link. Before the ``<table>``, add
 the following line::
 
@@ -414,7 +410,7 @@ back at our Articles model and make a few adjustments::
 
     class ArticlesTable extends Table
     {
-        public function initialize(array $config)
+        public function initialize(array $config): void
         {
             $this->addBehavior('Timestamp');
         }
@@ -459,7 +455,6 @@ like::
     {
         $article = $this->Articles->get($id);
         if ($this->request->is(['post', 'put'])) {
-            // Prior to 3.4.0 $this->request->data() was used.
             $this->Articles->patchEntity($article, $this->request->getData());
             if ($this->Articles->save($article)) {
                 $this->Flash->success(__('Your article has been updated.'));
@@ -485,7 +480,7 @@ The edit view might look something like this:
 
 .. code-block:: php
 
-    <!-- File: src/Template/Articles/edit.ctp -->
+    <!-- File: templates/Articles/edit.php -->
 
     <h1>Edit Article</h1>
     <?php
@@ -507,7 +502,7 @@ articles:
 
 .. code-block:: php
 
-    <!-- File: src/Template/Articles/index.ctp  (edit links added) -->
+    <!-- File: templates/Articles/index.php  (edit links added) -->
 
     <h1>Blog articles</h1>
     <p><?= $this->Html->link("Add Article", ['action' => 'add']) ?></p>
@@ -572,7 +567,7 @@ links that allow users to delete articles, however:
 
 .. code-block:: php
 
-    <!-- File: src/Template/Articles/index.ctp (delete links added) -->
+    <!-- File: templates/Articles/index.php (delete links added) -->
 
     <h1>Blog articles</h1>
     <p><?= $this->Html->link('Add Article', ['action' => 'add']) ?></p>

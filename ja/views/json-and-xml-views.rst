@@ -126,8 +126,8 @@ JSON レスポンスからそれを取り除きたいとします。こういっ
 レイアウトをサポートしません。
 
 .. note::
-    3.1.0 の AppController から、全ての XML/JSON リクエストに対して、
-    アプリケーションスケルトンの中で自動的に ``'_serialize' => true`` が追加されます。
+    3.1.0 から 3.5.0 まで、 アプリケーションスケルトンの AppController は、
+    全ての XML/JSON リクエストに対して、自動的に ``'_serialize' => true`` を追加していました。
     そのためビューファイルを使用したい場合は、このコードを beforeRender コールバックから
     取り除くか、 ``'_serialize' => false`` をセットする必要があります。
 
@@ -142,6 +142,34 @@ XML ビューの作成
 
 XmlView クラスは、XML の生成に使用するオプション（例: ``tags`` vs ``attributes`` ）を
 変更するための ``_xmlOptions`` 変数をサポートしています。
+
+``XmlView`` の使用例は `sitemap.xml
+<https://www.sitemaps.org/protocol.html>`_ を生成することです。
+このドキュメントタイプでは ``_rootNode`` を変更し属性を設定する必要があります。
+属性は ``@`` プレフィックスを使用して定義されます。 ::
+
+    public function sitemap()
+    {
+        $pages = $this->Pages->find();
+        $urls = [];
+        foreach ($pages as $page) {
+            $urls[] = [
+                'loc' => Router::url(['controller' => 'Pages', 'action' => 'view', $page->slug, '_full' => true]),
+                'lastmod' => $page->modified->format('Y-m-d'),
+                'changefreq' => 'daily',
+                'priority' => '0.5'
+            ];
+        }
+
+        // 生成されたドキュメントにカスタムルートノードを定義します。
+        $this->set('_rootNode', 'urlset');
+        $this->set([
+            // ルートノードで属性を定義します。
+            '@xmlns' => 'http://www.sitemaps.org/schemas/sitemap/0.9',
+            'url' => $urls
+        ]);
+        $this->set('_serialize', ['@xmlns', 'url']);
+    }
 
 JSON ビューの作成
 =================
@@ -181,7 +209,7 @@ JSONP レスポンスの返すことが出来ます。これに ``true`` を設�
     namespace App\Controller;
 
     use App\Controller\AppController;
-    // Prior to 3.6 use Cake\Network\Exception\NotFoundException
+    // 3.6 より前は Cake\Network\Exception\NotFoundException を使用
     use Cake\Http\Exception\NotFoundException;
 
     class VideosController extends AppController
@@ -202,7 +230,7 @@ JSONP レスポンスの返すことが出来ます。これに ``true`` を設�
             }
 
             // ビューに出力形式をセット
-            $this->viewBuilder()->className($formats[$format]);
+            $this->viewBuilder()->setClassName($formats[$format]);
 
             // データを取得
             $videos = $this->Videos->find('latest');

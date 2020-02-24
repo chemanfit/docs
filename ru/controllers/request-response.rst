@@ -281,8 +281,6 @@ XML в объект DOMDocument, то :php:meth:`~Cake\\Http\\ServerRequest::inp
   X-Requested-With = XMLHttpRequest.
 * ``is('ssl')`` Проверьте, выполняется ли запрос через SSL.
 * ``is('flash')`` Проверьте, имеет ли запрос User-Agent - Flash.
-* ``is('requested')`` Проверьте, имеет ли запрос - параметр запроса
-  'requested' со значением 1.
 * ``is('json')`` Проверьте, имеет ли запрос расширение json и принимает
   ли 'application/json' mimetype.
 * ``is('xml')`` роверьте, есть ли запрос с расширением 'xml' и принимающий
@@ -375,7 +373,7 @@ XML в объект DOMDocument, то :php:meth:`~Cake\\Http\\ServerRequest::inp
 Хотя некоторые установки Apache делают заголовок ``Authorization`` не доступным,
 CakePHP сделает его доступным с помощью специальных методов apache по мере необходимости.
 
-.. php:method:: referer($local = false)
+.. php:method:: referer($local = true)
 
 Возвращает ссылочный адрес для запроса.
 
@@ -1074,4 +1072,4 @@ HTML-файлы в зависимости от браузера. В таких �
 
 .. meta::
     :title lang=ru: Объекты запроса и ответа
-    :keywords lang=en: request controller,request parameters,array indexes,purpose index,response objects,domain information,request object,request data,interrogating,params,previous versions,introspection,dispatcher,rout,data structures,arrays,ip address,migration,indexes,cakephp,PSR-7,immutable
+    :keywords lang=en: request controller,request parameters,array indexes,purpose index,response objects,domain information,request object,request data,interrogating,params,parameters,previous versions,introspection,dispatcher,rout,data structures,arrays,ip address,migration,indexes,cakephp,PSR-7,immutable

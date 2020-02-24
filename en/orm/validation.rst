@@ -22,12 +22,9 @@ If any validation rules fail, the returned entity will contain errors. The
 fields with errors will not be present in the returned entity::
 
     $article = $articles->newEntity($this->request->getData());
-    if ($article->errors()) {
+    if ($article->getErrors()) {
         // Entity failed validation.
     }
-
-.. versionadded:: 3.4.0
-    The ``getErrors()`` function was added.
 
 When building an entity with validation enabled the following occurs:
 
@@ -73,10 +70,10 @@ To create a default validation object in your table, create the
         {
             $validator
                 ->requirePresence('title', 'create')
-                ->notEmpty('title');
+                ->notEmptyString('title');
 
             $validator
-                ->allowEmpty('link')
+                ->allowEmptyString('link')
                 ->add('link', 'valid-url', ['rule' => 'url']);
 
             ...
@@ -113,14 +110,8 @@ used. An example validator for our articles table would be::
         public function validationUpdate($validator)
         {
             $validator
-                ->add('title', 'notEmpty', [
-                    'rule' => 'notEmpty',
-                    'message' => __('You need to provide a title'),
-                ])
-                ->add('body', 'notEmpty', [
-                    'rule' => 'notEmpty',
-                    'message' => __('A body is required')
-                ]);
+                ->notEmptyString('title', __('You need to provide a title'))
+                ->notEmptyString('body', __('A body is required'));
             return $validator;
         }
     }
@@ -169,8 +160,8 @@ construction process into multiple reusable steps::
 
     public function validationDefault(Validator $validator)
     {
-        $validator->notEmpty('username');
-        $validator->notEmpty('password');
+        $validator->notEmptyString('username');
+        $validator->notEmptyString('password');
         $validator->add('email', 'valid-email', ['rule' => 'email']);
         ...
 
@@ -246,12 +237,9 @@ Getting Validators From Tables
 Once you have created a few validation sets in your table class, you can get the
 resulting object by name::
 
-    $defaultValidator = $usersTable->validator('default');
+    $defaultValidator = $usersTable->getValidator('default');
 
-    $hardenedValidator = $usersTable->validator('hardened');
-
-.. deprecated:: 3.5.0
-    ``validator()`` is deprecated. Use ``getValidator()`` instead.
+    $hardenedValidator = $usersTable->getValidator('hardened');
 
 Default Validator Class
 =======================
@@ -261,7 +249,7 @@ As stated above, by default the validation methods receive an instance of
 instance to be used each time, you can use table's ``$_validatorClass`` property::
 
     // In your table class
-    public function initialize(array $config)
+    public function initialize(array $config): void
     {
         $this->_validatorClass = '\FullyNamespaced\Custom\Validator';
     }
@@ -289,6 +277,8 @@ before entities are persisted. Some example domain rules are:
 * Enforcing usage/rate limit caps.
 
 Domain rules are checked when calling the Table ``save()`` and ``delete()`` methods.
+
+.. _creating-a-rules-checker:
 
 Creating a Rules Checker
 ------------------------
@@ -346,9 +336,9 @@ message as options::
         'message' => 'This invoice cannot be moved to that status.'
     ]);
 
-The error will be visible when calling the ``errors()`` method on the entity::
+The error will be visible when calling the ``getErrors()`` method on the entity::
 
-    $entity->errors(); // Contains the domain rules error messages
+    $entity->getErrors(); // Contains the domain rules error messages
 
 Creating Unique Field Rules
 ---------------------------
@@ -414,9 +404,6 @@ unique checks using ``allowMultipleNulls``::
         ['allowMultipleNulls' => false]
     ));
 
-.. versionadded:: 3.3.0
-    The ``allowNullableNulls`` and ``allowMultipleNulls`` options were added.
-
 Association Count Rules
 -----------------------
 
@@ -442,8 +429,29 @@ Note that ``validCount`` returns ``false`` if the property is not countable or d
     // The save operation will fail if tags is null.
     $rules->add($rules->validCount('tags', 0, '<=', 'You must not have any tags'));
 
-.. versionadded:: 3.3.0
-    The ``validCount()`` method was added in 3.3.0.
+Association Link Constraint Rule
+--------------------------------
+
+The ``LinkConstraint`` lets you emulate SQL constraints in databases that don't
+support them, or when you want to provide more user friendly error messages when
+constraints would fail. This rule enables you to check if an association does or does not
+have related records depending on the mode used::
+
+    // Ensure that each comment is linked to an Article during updates.
+    $rules->addUpdate($rules->isLinkedTo(
+        'Articles',
+        'article',
+        'Requires an article'
+    ));
+
+    // Ensure that an article has no linked comments during delete.
+    $rules->addDelete($rules->isNotLinkedTo(
+        'Comments',
+        'comments',
+        'Must have zero comments before deletion.'
+    ));
+
+.. versionadded:: 4.0.0
 
 Using Entity Methods as Rules
 -----------------------------
@@ -474,6 +482,46 @@ You may want to conditionally apply rules based on entity data::
         return false;
     }, 'userExists');
 
+Conditional/Dynamic Error Messages
+----------------------------------
+
+Rules, being it :ref:`custom callables <creating-a-rules-checker>`, or
+:ref:`rule objects <creating-custom-rule-objects>`, can either return a boolean, indicating
+whether they passed, or they can return a string, which means that the rule did not pass,
+and that the returned string should be used as the error message.
+
+Possible existing error messages defined via the ``message`` option will be overwritten
+by the ones returned from the rule::
+
+    $rules->add(
+        function ($entity, $options) {
+            if (!$entity->length) {
+                return false;
+            }
+
+            if ($entity->length < 10) {
+                return 'Error message when value is less than 10';
+            }
+
+            if ($entity->length > 20) {
+                return 'Error message when value is greater than 20';
+            }
+
+            return true;
+        },
+        'ruleName',
+        [
+            'errorField' => 'length',
+            'message' => 'Generic error message used when `false` is returned'
+        ]
+     );
+
+.. note::
+
+    Note that in order for the returned message to be actually used, you *must* also supply the
+    ``errorField`` option, otherwise the rule will just silently fail to pass, ie without an
+    error message being set on the entity!
+
 Creating Custom re-usable Rules
 -------------------------------
 
@@ -491,6 +539,8 @@ You may want to re-use custom domain rules. You can do so by creating your own i
     }
 
 See the core rules for examples on how to create such rules.
+
+.. _creating-custom-rule-objects:
 
 Creating Custom Rule Objects
 ----------------------------
@@ -559,7 +609,10 @@ In the above example, we'll use a 'custom' validator, which is defined using the
 
     public function validationCustomName($validator)
     {
-        $validator->add(...);
+        $validator->add(
+            // ...
+        );
+
         return $validator;
     }
 
@@ -574,7 +627,8 @@ from any request::
             'message' => 'Passwords are not equal',
         ]);
 
-        ...
+        // ...
+
         return $validator;
     }
 
@@ -595,6 +649,7 @@ Application rules as explained above will be checked whenever ``save()`` or
     public function buildRules(RulesChecker $rules)
     {
         $rules->add($rules->isUnique('email'));
+
         return $rules;
     }
 
@@ -612,12 +667,14 @@ for data transitions generated inside your application::
             if($order->shipping_mode !== 'free'){
                 return true;
             }
+
             return $order->price >= 100;
         };
         $rules->add($check, [
             'errorField' => 'shipping_mode',
             'message' => 'No free shipping for orders under 100!'
         ]);
+
         return $rules;
     }
 
@@ -636,11 +693,13 @@ come up when running a CLI script that directly sets properties on entities::
     // In src/Model/Table/UsersTable.php
     public function validationDefault(Validator $validator)
     {
-        $validator->add('email', 'valid', [
+        $validator->add('email', 'valid_email', [
             'rule' => 'email',
             'message' => 'Invalid email'
         ]);
-        ...
+
+        // ...
+
         return $validator;
     }
 
@@ -650,13 +709,13 @@ come up when running a CLI script that directly sets properties on entities::
         $rules->add(function($entity) {
             $data = $entity->extract($this->schema()->columns(), true);
             $validator = $this->validator('default');
-            $errors = $validator->errors($data, $entity->isNew());
-            $entity->errors($errors);
+            $errors = $validator->validate($data, $entity->isNew());
+            $entity->setErrors($errors);
 
             return empty($errors);
         });
 
-        ...
+        // ...
 
         return $rules;
     }
@@ -666,10 +725,10 @@ was added::
 
     $userEntity->email = 'not an email!!!';
     $usersTable->save($userEntity);
-    $userEntity->errors('email'); // Invalid email
+    $userEntity->getError('email'); // Invalid email
 
 The same result can be expected when using ``newEntity()`` or
 ``patchEntity()``::
 
     $userEntity = $usersTable->newEntity(['email' => 'not an email!!']);
-    $userEntity->errors('email'); // Invalid email
+    $userEntity->getError('email'); // Invalid email

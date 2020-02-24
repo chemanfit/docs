@@ -21,7 +21,7 @@ RequestHandler it must be included in your ``initialize()`` method::
 
     class WidgetsController extends AppController
     {
-        public function initialize()
+        public function initialize(): void
         {
             parent::initialize();
             $this->loadComponent('RequestHandler');
@@ -46,14 +46,13 @@ the client and its request.
 
         class ArticlesController extends AppController
         {
-
-            public function initialize()
+            public function initialize(): void
             {
                 parent::initialize();
                 $this->loadComponent('RequestHandler');
             }
 
-            public function beforeFilter(Event $event)
+            public function beforeFilter(EventInterface $event)
             {
                 if ($this->RequestHandler->accepts('html')) {
                     // Execute code only if client accepts an HTML (text/html)
@@ -128,57 +127,15 @@ However, you want to allow caching for non-AJAX requests. The
 following would accomplish that::
 
         if ($this->request->is('ajax')) {
-            $this->response->disableCache();
+            $this->response = $this->response->withDisabledCache();
         }
         // Continue Controller action
 
 Automatically Decoding Request Data
 ===================================
 
-Add a request data decoder. The handler should contain a callback, and any
-additional arguments for the callback. The callback should return
-an array of data contained in the request input. For example adding a CSV
-handler could look like::
-
-    class ArticlesController extends AppController
-    {
-        public function initialize()
-        {
-            parent::initialize();
-            $parser = function ($data) {
-                $rows = str_getcsv($data, "\n");
-                foreach ($rows as &$row) {
-                    $row = str_getcsv($row, ',');
-                }
-                return $rows;
-            };
-            $this->loadComponent('RequestHandler', [
-                'inputTypeMap' => [
-                    'csv' => [$parser]
-                ]
-            ]);
-        }
-    }
-
-You can use any `callable <http://php.net/callback>`_ for the handling function.
-You can also pass additional arguments to the callback, this is useful for
-callbacks like ``json_decode``::
-
-    $this->RequestHandler->addInputType('json', ['json_decode', true]);
-
-    // After 3.1.0 you should use
-    $this->RequestHandler->config('inputTypeMap.json', ['json_decode', true]);
-
-The above will make ``$this->request->getData()`` an array of the JSON input data,
-without the additional ``true`` you'd get a set of ``stdClass`` objects.
-
-.. deprecated:: 3.1.0
-    As of 3.1.0 the ``addInputType()`` method is deprecated. You should use
-    ``config()`` to add input types at runtime.
-
-.. versionchanged:: 3.6.0
-    You should prefer using :ref:`body-parser-middleware` instead of
-    RequestHandlerComponent.
+This feature has been removed from ``RequestHandlerComponent`` in 4.0. You
+should use :ref:`body-parser-middleware` instead.
 
 Checking Content-Type Preferences
 =================================
@@ -246,7 +203,7 @@ the client. The response status code is then set to ``304 Not Modified``.
 You can opt-out this automatic checking by setting the ``checkHttpCache``
 setting to ``false``::
 
-    public function initialize()
+    public function initialize(): void
     {
         parent::initialize();
         $this->loadComponent('RequestHandler', [
@@ -263,7 +220,7 @@ with a custom View class, or add View classes for other types.
 You can map existing and new types to your custom classes. You can also set this
 automatically by using the ``viewClassMap`` setting::
 
-    public function initialize()
+    public function initialize(): void
     {
         parent::initialize();
         $this->loadComponent('RequestHandler', [
@@ -274,10 +231,6 @@ automatically by using the ``viewClassMap`` setting::
             ]
         ]);
     }
-
-.. deprecated:: 3.1.0
-    As of 3.1.0 the ``viewClassMap()`` method is deprecated. You should use
-    ``config()`` to change the viewClassMap at runtime.
 
 .. meta::
     :title lang=en: Request Handling

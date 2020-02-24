@@ -17,7 +17,7 @@ Creating a Cell
 ===============
 
 To create a cell, define a class in **src/View/Cell** and a template in
-**src/Template/Cell/**. In this example, we'll be making a cell to display the
+**templates/cell/**. In this example, we'll be making a cell to display the
 number of messages in a user's notification inbox. First, create the class file.
 Its contents should look like::
 
@@ -27,11 +27,9 @@ Its contents should look like::
 
     class InboxCell extends Cell
     {
-
         public function display()
         {
         }
-
     }
 
 Save this file into **src/View/Cell/InboxCell.php**. As you can see, like other
@@ -44,7 +42,7 @@ classes in CakePHP, Cells have a few conventions:
 
 We added an empty ``display()`` method to our cell; this is the conventional
 default method when rendering a cell. We'll cover how to use other methods later
-in the docs. Now, create the file **src/Template/Cell/Inbox/display.ctp**. This
+in the docs. Now, create the file **templates/cell/Inbox/display.php**. This
 will be our template for our new cell.
 
 You can generate this stub code quickly using ``bake``::
@@ -67,14 +65,12 @@ case for a cell. In the class we just made, add the following::
 
     class InboxCell extends Cell
     {
-
         public function display()
         {
             $this->loadModel('Messages');
             $unread = $this->Messages->find('unread');
             $this->set('unread_count', $unread->count());
         }
-
     }
 
 Because Cells use the ``ModelAwareTrait`` and ``ViewVarsTrait``, they behave
@@ -82,7 +78,7 @@ very much like a controller would.  We can use the ``loadModel()`` and ``set()``
 methods just like we would in a controller. In our template file, add the
 following::
 
-    <!-- src/Template/Cell/Inbox/display.ctp -->
+    <!-- templates/cell/Inbox/display.php -->
     <div class="notification-icon">
         You have <?= $unread_count ?> unread messages.
     </div>
@@ -151,7 +147,7 @@ easiest way to render a cell is to echo it::
     <?= $cell ?>
 
 This will render the template matching the lowercased and underscored version of
-our action name, e.g. **display.ctp**.
+our action name, e.g. **display.php**.
 
 Because cells use ``View`` to render templates, you can load additional cells
 within a cell template if required.
@@ -176,10 +172,7 @@ to use when rendering the cell::
     // Set template before echoing the cell.
     $cell = $this->cell('Inbox');
     $cell->viewBuilder()->setTemplate('messages');
-    // Before 3.4
-    $cell->viewBuilder()->template('messages');
-    // Before 3.1
-    $cell->template = 'messages';
+
     echo $cell;
 
 Caching Cell Output
@@ -244,8 +237,8 @@ messages could look like::
                 ]
             );
 
-            $paging = $paginator->getPagingParams() + (array)$request->getParam('paging');
-            $this->request = $this->request->withParam('paging', $paging));
+            $paging = $paginator->getPagingParams() + (array)$this->request->getAttribute('paging');
+            $this->request = $this->request->withAttribute('paging', $paging));
 
             $this->set('favorites', $results);
         }
@@ -253,9 +246,6 @@ messages could look like::
 
 The above cell would paginate the ``Messages`` model using :ref:`scoped
 pagination parameters <paginating-multiple-queries>`.
-
-.. versionadded:: 3.5.0
-    ``Cake\Datasource\Paginator`` was added in 3.5.0.
 
 Cell Options
 ============

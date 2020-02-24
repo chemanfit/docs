@@ -11,7 +11,7 @@ leverage the new view classes. ``JsonView`` and ``XmlView`` will be referred to
 as data views for the rest of this page.
 
 There are two ways you can generate data views. The first is by using the
-``_serialize`` key, and the second is by creating normal template files.
+``serialize`` option, and the second is by creating normal template files.
 
 Enabling Data Views in Your Application
 =======================================
@@ -20,7 +20,7 @@ Before you can use the data view classes, you'll first need to load the
 :php:class:`Cake\\Controller\\Component\\RequestHandlerComponent` in your
 controller::
 
-    public function initialize()
+    public function initialize(): void
     {
         ...
         $this->loadComponent('RequestHandler');
@@ -44,21 +44,21 @@ user. An example ``Accept`` format that is used to render ``JSON`` responses is
 Using Data Views with the Serialize Key
 =======================================
 
-The ``_serialize`` key is a special view variable that indicates which other
-view variable(s) should be serialized when using a data view. This lets you skip
-defining template files for your controller actions if you don't need to do any
-custom formatting before your data is converted into json/xml.
+The ``serialize`` option indicates which view variable(s) should be
+serialized when using a data view. This lets you skip defining template files
+for your controller actions if you don't need to do any custom formatting before
+your data is converted into json/xml.
 
 If you need to do any formatting or manipulation of your view variables before
 generating the response, you should use template files. The value of
-``_serialize`` can be either a string or an array of view variables to
+``serialize`` can be either a string or an array of view variables to
 serialize::
 
     namespace App\Controller;
 
     class ArticlesController extends AppController
     {
-        public function initialize()
+        public function initialize(): void
         {
             parent::initialize();
             $this->loadComponent('RequestHandler');
@@ -69,17 +69,17 @@ serialize::
             // Set the view vars that have to be serialized.
             $this->set('articles', $this->paginate());
             // Specify which view vars JsonView should serialize.
-            $this->set('_serialize', 'articles');
+            $this->viewBuilder()->setOption('serialize', 'articles');
         }
     }
 
-You can also define ``_serialize`` as an array of view variables to combine::
+You can also define ``serialize`` as an array of view variables to combine::
 
     namespace App\Controller;
 
     class ArticlesController extends AppController
     {
-        public function initialize()
+        public function initialize(): void
         {
             parent::initialize();
             $this->loadComponent('RequestHandler');
@@ -93,13 +93,13 @@ You can also define ``_serialize`` as an array of view variables to combine::
             $this->set(compact('articles', 'comments'));
 
             // Specify which view vars JsonView should serialize.
-            $this->set('_serialize', ['articles', 'comments']);
+            $this->viewBuilder()->setOption('serialize', ['articles', 'comments']);
         }
     }
 
-Defining ``_serialize`` as an array has added the benefit of automatically
+Defining ``serialize`` as an array has added the benefit of automatically
 appending a top-level ``<response>`` element when using :php:class:`XmlView`.
-If you use a string value for ``_serialize`` and XmlView, make sure that your
+If you use a string value for ``serialize`` and XmlView, make sure that your
 view variable has a single top-level element. Without a single top-level
 element the Xml will fail to generate.
 
@@ -121,7 +121,7 @@ JSON response. This is a situation where a view file would be useful::
         }
     }
 
-    // View code - src/Template/Articles/json/index.ctp
+    // View code - templates/Articles/json/index.php
     foreach ($articles as &$article) {
         unset($article->generated_html);
     }
@@ -131,23 +131,46 @@ You can do more complex manipulations, or use helpers to do formatting as well.
 The data view classes don't support layouts. They assume that the view file will
 output the serialized content.
 
-.. note::
-    As of 3.1.0 AppController, in the application skeleton automatically adds
-    ``'_serialize' => true`` to all XML/JSON requests. You will need to remove
-    this code from the beforeRender callback or set ``'_serialize' => false`` in
-    your controller's action if you want to use view files.
-
 Creating XML Views
 ==================
 
 .. php:class:: XmlView
 
-By default when using ``_serialize`` the XmlView will wrap your serialized
+By default when using ``serialize`` the XmlView will wrap your serialized
 view variables with a ``<response>`` node. You can set a custom name for
-this node using the ``_rootNode`` view variable.
+this node using the ``rootNode`` option.
 
-The XmlView class supports the ``_xmlOptions`` variable that allows you to
+The XmlView class supports the ``xmlOptions`` option that allows you to
 customize the options used to generate XML, e.g. ``tags`` vs ``attributes``.
+
+An example of using ``XmlView`` would be to generate a `sitemap.xml
+<https://www.sitemaps.org/protocol.html>`_. This document type requires that you
+change ``_rootNode`` and set attributes. Attributes are defined using the ``@``
+prefix::
+
+    public function sitemap()
+    {
+        $pages = $this->Pages->find();
+        $urls = [];
+        foreach ($pages as $page) {
+            $urls[] = [
+                'loc' => Router::url(['controller' => 'Pages', 'action' => 'view', $page->slug, '_full' => true]),
+                'lastmod' => $page->modified->format('Y-m-d'),
+                'changefreq' => 'daily',
+                'priority' => '0.5'
+            ];
+        }
+
+        // Define a custom root node in the generated document.
+        $this->viewBuilder()
+            ->setOption('rootNode', 'urlset')
+            ->setOption('serialize', ['@xmlns', 'url']);
+        $this->set([
+            // Define an attribute on the root node.
+            '@xmlns' => 'http://www.sitemaps.org/schemas/sitemap/0.9',
+            'url' => $urls
+        ]);
+    }
 
 Creating JSON Views
 ===================
@@ -163,8 +186,9 @@ For example, to serialize validation error output of CakePHP entities in a consi
 
     // In your controller's action when saving failed
     $this->set('errors', $articles->errors());
-    $this->set('_jsonOptions', JSON_FORCE_OBJECT);
-    $this->set('_serialize', ['errors']);
+    $this->viewBuilder()
+        ->setOption('serialize', ['errors'])
+        ->setOption('jsonOptions', JSON_FORCE_OBJECT);
 
 JSONP Responses
 ---------------
@@ -188,8 +212,6 @@ mappings in your controller::
     namespace App\Controller;
 
     use App\Controller\AppController;
-
-    // Prior to 3.6 use Cake\Network\Exception\NotFoundException
     use Cake\Http\Exception\NotFoundException;
 
     class VideosController extends AppController
@@ -210,18 +232,16 @@ mappings in your controller::
             }
 
             // Set Out Format View
-            $this->viewBuilder()->className($formats[$format]);
+            $this->viewBuilder()->setClassName($formats[$format]);
 
             // Get data
             $videos = $this->Videos->find('latest');
 
             // Set Data View
             $this->set(compact('videos'));
-            $this->set('_serialize', ['videos']);
+            $this->viewBuilder()->setOption('serialize', ['videos']);
 
             // Set Force Download
-            // Prior to 3.4.0
-            // $this->response->download('report-' . date('YmdHis') . '.' . $format);
             return $this->response->withDownload('report-' . date('YmdHis') . '.' . $format);
         }
     }

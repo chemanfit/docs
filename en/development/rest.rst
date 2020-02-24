@@ -24,7 +24,7 @@ controller might look something like this::
     // src/Controller/RecipesController.php
     class RecipesController extends AppController
     {
-        public function initialize()
+        public function initialize(): void
         {
             parent::initialize();
             $this->loadComponent('RequestHandler');
@@ -33,23 +33,20 @@ controller might look something like this::
         public function index()
         {
             $recipes = $this->Recipes->find('all');
-            $this->set([
-                'recipes' => $recipes,
-                '_serialize' => ['recipes']
-            ]);
+            $this->set('recipes', $recipes);
+            $this->viewBuilder()->setOption('serialize', ['recipes']);
         }
 
         public function view($id)
         {
             $recipe = $this->Recipes->get($id);
-            $this->set([
-                'recipe' => $recipe,
-                '_serialize' => ['recipe']
-            ]);
+            $this->set('recipe', $recipe);
+            $this->viewBuilder()->setOption('serialize', ['recipe']);
         }
 
         public function add()
         {
+            $this->request->allowMethod(['post', 'put']);
             $recipe = $this->Recipes->newEntity($this->request->getData());
             if ($this->Recipes->save($recipe)) {
                 $message = 'Saved';
@@ -59,56 +56,54 @@ controller might look something like this::
             $this->set([
                 'message' => $message,
                 'recipe' => $recipe,
-                '_serialize' => ['message', 'recipe']
             ]);
+            $this->viewBuilder()->setOption('serialize', ['recipe', 'message']);
         }
 
         public function edit($id)
         {
+            $this->request->allowMethod(['patch', 'post', 'put']);
             $recipe = $this->Recipes->get($id);
-            if ($this->request->is(['post', 'put'])) {
-                $recipe = $this->Recipes->patchEntity($recipe, $this->request->getData());
-                if ($this->Recipes->save($recipe)) {
-                    $message = 'Saved';
-                } else {
-                    $message = 'Error';
-                }
+            $recipe = $this->Recipes->patchEntity($recipe, $this->request->getData());
+            if ($this->Recipes->save($recipe)) {
+                $message = 'Saved';
+            } else {
+                $message = 'Error';
             }
             $this->set([
                 'message' => $message,
-                '_serialize' => ['message']
+                'recipe' => $recipe,
             ]);
+            $this->viewBuilder()->setOption('serialize', ['recipe', 'message']);
         }
 
         public function delete($id)
         {
+            $this->request->allowMethod(['delete']);
             $recipe = $this->Recipes->get($id);
             $message = 'Deleted';
             if (!$this->Recipes->delete($recipe)) {
                 $message = 'Error';
             }
-            $this->set([
-                'message' => $message,
-                '_serialize' => ['message']
-            ]);
+            $this->set('message', $message);
+            $this->viewBuilder()->setOption('serialize', ['message']);
         }
     }
 
 RESTful controllers often use parsed extensions to serve up different views
 based on different kinds of requests. Since we're dealing with REST requests,
-we'll be making XML views. You can make JSON views using CakePHP's
-built-in :doc:`/views/json-and-xml-views`. By using the built in
-:php:class:`XmlView` we can define a ``_serialize`` view variable. This special
-view variable is used to define which view variables ``XmlView`` should
-serialize into XML.
+we'll be making XML views. You can make JSON views using CakePHP's built-in
+:doc:`/views/json-and-xml-views`. By using the built in :php:class:`XmlView` we
+can define a ``serialize`` option. This option is used to define which view
+variables ``XmlView`` should serialize into XML.
 
 If we wanted to modify the data before it is converted into XML we should not
-define the ``_serialize`` view variable, and instead use template files. We place
-the REST views for our RecipesController inside **src/Template/Recipes/xml**. We can also use
+define the ``serialize`` option, and instead use template files. We place
+the REST views for our RecipesController inside **templates/Recipes/xml**. We can also use
 the :php:class:`Xml` for quick-and-easy XML output in those views. Here's what
 our index view might look like::
 
-    // src/Template/Recipes/xml/index.ctp
+    // templates/Recipes/xml/index.php
     // Do some formatting and manipulation on
     // the $recipes array.
     $xml = Xml::fromArray(['response' => $recipes]);

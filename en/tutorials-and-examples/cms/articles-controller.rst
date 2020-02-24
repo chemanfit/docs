@@ -70,14 +70,14 @@ contain common site elements like headers, footers and navigation elements. Your
 application can have multiple layouts, and you can switch between them, but for
 now, let's just use the default layout.
 
-CakePHP's template files are stored in **src/Template** inside a folder
+CakePHP's template files are stored in **templates** inside a folder
 named after the controller they correspond to. So we'll have to create
 a folder named 'Articles' in this case. Add the following code to your
 application:
 
 .. code-block:: php
 
-    <!-- File: src/Template/Articles/index.ctp -->
+    <!-- File: templates/Articles/index.php -->
 
     <h1>Articles</h1>
     <table>
@@ -150,11 +150,11 @@ Create the View Template
 ========================
 
 Let's create the view for our new 'view' action and place it in
-**src/Template/Articles/view.ctp**
+**templates/Articles/view.php**
 
 .. code-block:: php
 
-    <!-- File: src/Template/Articles/view.ctp -->
+    <!-- File: templates/Articles/view.php -->
 
     <h1><?= h($article->title) ?></h1>
     <p><?= h($article->body) ?></p>
@@ -172,16 +172,15 @@ With the basic read views created, we need to make it possible for new articles
 to be created. Start by creating an ``add()`` action in the
 ``ArticlesController``. Our controller should now look like::
 
+    <?php
     // src/Controller/ArticlesController.php
-
     namespace App\Controller;
 
     use App\Controller\AppController;
 
     class ArticlesController extends AppController
     {
-
-        public function initialize()
+        public function initialize(): void
         {
             parent::initialize();
 
@@ -203,7 +202,7 @@ to be created. Start by creating an ``add()`` action in the
 
         public function add()
         {
-            $article = $this->Articles->newEntity();
+            $article = $this->Articles->newEmptyEntity();
             if ($this->request->is('post')) {
                 $article = $this->Articles->patchEntity($article, $this->request->getData());
 
@@ -266,7 +265,7 @@ Here's our add view template:
 
 .. code-block:: php
 
-    <!-- File: src/Template/Articles/add.ctp -->
+    <!-- File: templates/Articles/add.php -->
 
     <h1>Add Article</h1>
     <?php
@@ -299,7 +298,7 @@ field specified, and use inflection to generate the label text. You can
 customize the label, the input or any other aspect of the form controls using
 options. The ``$this->Form->end()`` call closes the form.
 
-Now let's go back and update our **src/Template/Articles/index.ctp**
+Now let's go back and update our **templates/Articles/index.php**
 view to include a new "Add Article" link. Before the ``<table>``, add
 the following line::
 
@@ -313,6 +312,7 @@ creating a slug attribute, and the column is ``NOT NULL``. Slug values are
 typically a URL-safe version of an article's title. We can use the
 :ref:`beforeSave() callback <table-callbacks>` of the ORM to populate our slug::
 
+    <?php
     // in src/Model/Table/ArticlesTable.php
     namespace App\Model\Table;
 
@@ -346,7 +346,10 @@ now. Add the following action to your ``ArticlesController``::
 
     public function edit($slug)
     {
-        $article = $this->Articles->findBySlug($slug)->firstOrFail();
+        $article = $this->Articles
+            ->findBySlug($slug)
+            ->firstOrFail();
+
         if ($this->request->is(['post', 'put'])) {
             $this->Articles->patchEntity($article, $this->request->getData());
             if ($this->Articles->save($article)) {
@@ -376,7 +379,7 @@ The edit template should look like this:
 
 .. code-block:: php
 
-    <!-- File: src/Template/Articles/edit.ctp -->
+    <!-- File: templates/Articles/edit.php -->
 
     <h1>Edit Article</h1>
     <?php
@@ -396,7 +399,7 @@ articles:
 
 .. code-block:: php
 
-    <!-- File: src/Template/Articles/index.ctp  (edit links added) -->
+    <!-- File: templates/Articles/index.php  (edit links added) -->
 
     <h1>Articles</h1>
     <p><?= $this->Html->link("Add Article", ['action' => 'add']) ?></p>
@@ -438,14 +441,14 @@ using :ref:`a validator <validating-request-data>`::
     use Cake\Validation\Validator;
 
     // Add the following method.
-    public function validationDefault(Validator $validator)
+    public function validationDefault(Validator $validator): Validator
     {
         $validator
-            ->notEmpty('title')
+            ->allowEmptyString('title', false)
             ->minLength('title', 10)
             ->maxLength('title', 255)
 
-            ->notEmpty('body')
+            ->allowEmptyString('body', false)
             ->minLength('body', 10);
 
         return $validator;
@@ -473,6 +476,8 @@ Next, let's make a way for users to delete articles. Start with a
 ``delete()`` action in the ``ArticlesController``::
 
     // src/Controller/ArticlesController.php
+
+    // Add the following method.
 
     public function delete($slug)
     {
@@ -506,7 +511,7 @@ that allow users to delete articles:
 
 .. code-block:: php
 
-    <!-- File: src/Template/Articles/index.ctp  (delete links added) -->
+    <!-- File: templates/Articles/index.php  (delete links added) -->
 
     <h1>Articles</h1>
     <p><?= $this->Html->link("Add Article", ['action' => 'add']) ?></p>

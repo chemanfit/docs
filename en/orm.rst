@@ -22,12 +22,6 @@ both patterns to create a fast, simple to use ORM.
 Before we get started exploring the ORM, make sure you :ref:`configure your
 database connections <database-configuration>`.
 
-.. note::
-
-    If you are familiar with previous versions of CakePHP, you should read the
-    :doc:`/appendices/orm-migration` for important differences between CakePHP 3.0
-    and older versions of CakePHP.
-
 Quick Example
 =============
 
@@ -38,7 +32,7 @@ table we could do::
 
     use Cake\ORM\TableRegistry;
 
-    $articles = TableRegistry::get('Articles');
+    $articles = TableRegistry::getTableLocator()->get('Articles');
 
     $query = $articles->find();
 
@@ -59,17 +53,16 @@ associations or defining some additional methods we would add the following to
 
     class ArticlesTable extends Table
     {
-
     }
 
 Table classes use the CamelCased version of the table name with the ``Table``
 suffix as the class name. Once your class has been created you get a reference
-to it using the :php:class:`~Cake\\ORM\\TableRegistry` as before::
+to it using the :php:class:`~Cake\\ORM\\Locator\\TableLocator` through :php:class:`~Cake\\ORM\\TableRegistry` as before::
 
     use Cake\ORM\TableRegistry;
 
-    // Now $articles is an instance of our ArticlesTable class.
-    $articles = TableRegistry::get('Articles');
+    // $articles is an instance of our ArticlesTable class.
+    $articles = TableRegistry::getTableLocator()->get('Articles');
 
 Now that we have a concrete table class, we'll probably want to use a concrete
 entity class. Entity classes let you define accessor and mutator methods, define
@@ -82,7 +75,6 @@ following to **src/Model/Entity/Article.php** after the ``<?php`` opening tag::
 
     class Article extends Entity
     {
-
     }
 
 Entities use the singular CamelCase version of the table name as their class
@@ -91,8 +83,8 @@ load entities from the database we'll get instances of our new Article class::
 
     use Cake\ORM\TableRegistry;
 
-    // Now an instance of ArticlesTable.
-    $articles = TableRegistry::get('Articles');
+    // $articles is an instance of ArticlesTable.
+    $articles = TableRegistry::getTableLocator()->get('Articles');
     $query = $articles->find();
 
     foreach ($query as $row) {
@@ -124,4 +116,4 @@ More Information
     orm/associations
     orm/behaviors
     orm/schema-system
-    console-and-shells/schema-cache
+    console-commands/schema-cache

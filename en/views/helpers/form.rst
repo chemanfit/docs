@@ -17,7 +17,7 @@ Starting a Form
 .. php:method:: create(mixed $context = null, array $options = [])
 
 * ``$context`` - The context for which the form is being defined. Can be an ORM
-  entity, ORM resultset, array of metadata or ``false/null`` (to make a
+  entity, ORM resultset, ``Form`` instance, array of metadata or ``null`` (to make a
   model-less form).
 * ``$options`` - An array of options and/or HTML attributes.
 
@@ -94,7 +94,7 @@ do the following::
         $this->set('article', $article);
     }
 
-    // View/Articles/edit.ctp:
+    // View/Articles/edit.php:
     // Since $article->isNew() is false, we will get an edit form
     <?= $this->Form->create($article) ?>
 
@@ -155,6 +155,9 @@ Valid values:
 * ``'templateVars'`` - Allows you to provide template variables for the
   ``formStart`` template.
 
+* ``autoSetCustomValidity`` - Set to ``true`` to use custom required and notBlank
+  validation messages in the control's HTML5 validity message. Default is ``false``.
+
 .. tip::
 
     Besides the above options you can provide, in the ``$options`` argument,
@@ -166,14 +169,12 @@ Valid values:
 Getting form values from the query string
 -----------------------------------------
 
-.. versionadded:: 3.4.0
-
 A FormHelper's values sources define where its rendered elements, such as
 input-tags, receive their values from.
 
 By default FormHelper draws its values from the 'context'.  The default
-contexts, such as ``EntityContext``, will fetch data from the current entity, or
-from ``$request->getData()``.
+contexts, such as ``EntityContext``, will fetch data from ``$request->getData()``
+or from the current entity.
 
 If however, you are building a form that needs to read from the query string,
 you can use ``valueSource()`` to change where ``FormHelper`` reads data input
@@ -244,23 +245,26 @@ Using the ``'url'`` option allows you to point the form to a specific action in
 your current controller or another controller in your application.
 
 For example,
-if you'd like to point the form to the ``login()`` action of the current
+if you'd like to point the form to the ``publish()`` action of the current
 controller, you would supply an ``$options`` array, like the following::
 
-    echo $this->Form->create($article, ['url' => ['action' => 'login']]);
+    echo $this->Form->create($article, ['url' => ['action' => 'publish']]);
 
 Output:
 
 .. code-block:: html
 
-    <form method="post" action="/users/login">
+    <form method="post" action="/articles/publish">
 
 If the desired form action isn't in the current controller, you can specify
 a complete URL for the form action. The supplied URL can be relative to your
 CakePHP application::
 
     echo $this->Form->create(null, [
-        'url' => ['controller' => 'Articles', 'action' => 'publish']
+        'url' => [
+            'controller' => 'Articles',
+            'action' => 'publish'
+        ]
     ]);
 
 Output:
@@ -287,7 +291,7 @@ Use ``'url' => false`` if you don't want to output a URL as the form action.
 Using Custom Validators
 -----------------------
 
-Often models will have multiple validator sets, you can have FormHelper 
+Often models will have multiple validator sets, you can have FormHelper
 mark fields required based on the specific validator your controller
 action is going to apply. For example, your Users table has specific validation
 rules that only apply when an account is being registered::
@@ -401,11 +405,17 @@ text, with name of email
 text, with name of tel, telephone, or phone
     tel
 date
-    day, month, and year selects
+    date
 datetime, timestamp
-    day, month, year, hour, minute, and meridian selects
+    datetime-local
+datetimefractional, timestampfractional
+    datetime-local
 time
-    hour, minute, and meridian selects
+    time
+month
+    month
+year
+    select with years
 binary
     file
 
@@ -447,7 +457,7 @@ create appropriate controls for all of these form fields::
     // The following generates a Password input
     echo $this->Form->control('password');
     // Assuming 'approved' is a datetime or timestamp field the following
-    //generates: Day, Month, Year, Hour, Minute
+    //generates an input of type "datetime-local"
     echo $this->Form->control('approved');
     // The following generates a Textarea element
     echo $this->Form->control('quote');
@@ -459,8 +469,8 @@ A more extensive example showing some options for a date field::
 
     echo $this->Form->control('birth_dt', [
         'label' => 'Date of birth',
-        'minYear' => date('Y') - 70,
-        'maxYear' => date('Y') - 18,
+        'min' => date('Y') - 70,
+        'max' => date('Y') - 18,
     ]);
 
 Besides the specific :ref:`control-specific-options`,
@@ -666,6 +676,12 @@ as well as HTML attributes. This subsection will cover the options specific to
   nestedWidgets or set it to an array of attributes to be provided to the
   ``label`` tag.
 
+* ``$options['readonly']`` - Set the field to ``readonly`` in form.
+
+  E.g. ::
+
+      echo $this->Form->control('name', ['readonly' => true]);
+
 Generating Specific Types of Controls
 =====================================
 
@@ -693,8 +709,8 @@ as follows:
 
 * ``'default'`` - Used to set a default value for the control field. The
   value is used if the data passed to the form does not contain a value for the
-  field (or if no data is passed at all). An explicit default value will
-  override any default values defined in the schema.
+  field (or if no data is passed at all). If no default value is provided, the
+  column's default value will be used.
 
   Example usage::
 
@@ -729,11 +745,6 @@ as follows:
 In addition to the above options, you can mixin any HTML attribute you wish to
 use. Any non-special option name will be treated as an HTML attribute, and
 applied to the generated HTML control element.
-
-.. versionchanged:: 3.3.0
-    As of 3.3.0, FormHelper will automatically use any default values defined
-    in your database schema. You can disable this behavior by setting
-    the ``schemaDefault`` option to ``false``.
 
 Creating Input Elements
 =======================
@@ -1027,6 +1038,27 @@ methods are described in each method's own section.)
           'hiddenField' => 'N',
       ]);
 
+Using Collections to build options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It's possible to use the Collection class to build your options array. This approach is ideal if you already have a
+collection of entities and would like to build a select element from them.
+
+You can use the ``combine`` method to build a basic options array.::
+
+    $options = $examples->combine('id', 'name');
+
+It's also possible to add extra attributes by expanding the array. The following will create a data attribute on the
+option element, using the ``map`` collection method.::
+
+    $options = $examples->map(function ($value, $key) {
+        return [
+            'value' => $value->id,
+            'text' => $value->name,
+            'data-created' => $value->created
+        ];
+    });
+
 Creating Checkboxes
 ~~~~~~~~~~~~~~~~~~~
 
@@ -1133,7 +1165,7 @@ argument.
 
 For example::
 
-    $this->Form->radio('gender', ['Masculine','Feminine','Neuter']);
+    $this->Form->radio('gender', ['Masculine', 'Feminine', 'Neuter']);
 
 Will output:
 
@@ -1185,6 +1217,33 @@ Will output:
         <input type="radio" name="favorite_color" value="g" style="color:green;" id="favorite-color-g">
         Green
     </label>
+
+You can define additional attributes for an individual option's label as well::
+
+    echo $this->Form->radio(
+        'favorite_color',
+        [
+            ['value' => 'r', 'text' => 'Red', 'label' => ['class' => 'red']],
+            ['value' => 'u', 'text' => 'Blue', 'label' => ['class' => 'blue']],
+        ]
+    );
+
+Will output:
+
+.. code-block:: html
+
+    <input type="hidden" name="favorite_color" value="">
+    <label for="favorite-color-r" class="red">
+        <input type="radio" name="favorite_color" value="r" style="color:red;" id="favorite-color-r">
+        Red
+    </label>
+    <label for="favorite-color-u" class="blue">
+        <input type="radio" name="favorite_color" value="u" style="color:blue;" id="favorite-color-u">
+        Blue
+    </label>
+
+If the ``label`` key is used on an option, the attributes in
+``$attributes['label']`` will be ignored.
 
 .. _create-select-picker:
 
@@ -1489,28 +1548,27 @@ to your form's view template file::
     default values into input fields of type 'file'. Each time the form
     is displayed, the value inside will be empty.
 
-Upon submission, file fields provide an expanded data array to the
-script receiving the form data.
+To prevent the ``submittedfile`` from being over-written as blank, remove it
+from ``$_accessible``.  Alternatively, you can unset the index by using
+``beforeMarshal``::
 
-For the example above, the values in the submitted data array would
-be organized as follows, if CakePHP was installed on a Windows
-server (the key ``'tmp_name'`` will contain a different path
-in a Unix environment)::
+    public function beforeMarshal(\Cake\Event\Event $event, \ArrayObject $data, \ArrayObject $options)
+    {
+       if($data['submittedfile'] == '') {
+          unset($data['submittedfile']);
+       }
+    }
 
-    $this->request->data['submittedfile']
 
-    // would contain the following array:
-    [
-        'name' => 'conference_schedule.pdf',
-        'type' => 'application/pdf',
-        'tmp_name' => 'C:/WINDOWS/TEMP/php1EE.tmp',
-        'error' => 0, // On Windows this can be a string.
-        'size' => 41737,
-    ];
+Upon submission, file fields can be accessed though ``UploadedFileInterface``
+objects on the request. To move uploaded files to a permanent location, you can
+use::
 
-This array is generated by PHP itself, so for more detail on the
-way PHP handles data passed via file fields
-`read the PHP manual section on file uploads <http://php.net/features.file-upload>`_.
+    $fileobject = $this->request->getData('submittedfile');
+    $destination = UPLOAD_DIRECTORY . $fileobject->getClientFilename();
+
+    // Existing files with the same name will be replaced.
+    $fileobject->moveTo($destination);
 
 .. note::
 
@@ -1518,106 +1576,19 @@ way PHP handles data passed via file fields
     encoding-type, by setting the ``'type'`` option to ``'file'`` in
     ``$this->Form->create()``.
 
+.. _create-datetime-controls:
+
 Creating Date & Time Related Controls
 -------------------------------------
-
-The date and time related methods share a number of common traits and options
-and hence are grouped together into this subsection.
-
-.. _datetime-options:
-
-Common Options for Date & Time Controls
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-These options are common for the date and time related controls:
-
-* ``'empty'`` - If ``true`` an extra, empty, ``option`` HTML element is
-  added inside ``select`` at the top of the list. If a string, that string is
-  displayed as the empty element. Defaults to ``true``.
-
-* ``'default'`` | ``value`` - Use either of the two to set the default value to
-  be shown by the field. A value in ``$this->request->getData()`` matching the field
-  name will override this value. If no default is provided ``time()`` will
-  be used.
-
-* ``'year', 'month', 'day', 'hour', 'minute', 'second', 'meridian'`` - These
-  options allow you to control which control elements are generated or not.
-  By setting any of these options to ``false`` you can disable the generation
-  of that specific that select picker (if by default it would be rendered in
-  the used method). In addition each option allows you to pass HTML attributes
-  to that specific ``select`` element.
-
-.. _date-options:
-
-Options for Date-Related Controls
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-These options are concerning the date-related methods - i.e. ``year()``,
-``month()``, ``day()``, ``dateTime()`` and ``date()``:
-
-* ``'monthNames'`` - If ``false``, 2 digit numbers will be used instead of text
-  for displaying months in the select picker. If set to an array (e.g.
-  ``['01' => 'Jan', '02' => 'Feb', ...]``), the given array will be used.
-
-* ``'minYear'`` - The lowest value to use in the year select picker.
-
-* ``'maxYear'`` - The maximum value to use in the year select picker.
-
-* ``'orderYear'`` - The order of year values in the year select picker.
-  Possible values are ``'asc'`` and ``'desc'``. Defaults to ``'desc'``.
-
-.. _time-options:
-
-Options for Time-Related Controls
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-These options are concerning the time-related methods - ``hour()``,
-``minute()``, ``second()``, ``dateTime()`` and ``time()``:
-
-* ``'interval'`` - The interval in minutes between the values which are
-  displayed in the ``option`` elements of the minutes select picker.
-  Defaults to 1.
-
-* ``'round'`` - Set to ``up`` or ``down`` if you want to force rounding minutes
-  in either direction when the value doesn't fit neatly into an interval.
-  Defaults to ``null``.
-
-* ``timeFormat`` - Applies to ``dateTime()`` and ``time()``. The time format to
-  use in the select picker; either ``12`` or ``24``. When this option is set to
-  anything else than ``24`` the format will be automatically set to ``12`` and
-  the ``meridian`` select picker will be displayed automatically to the right of
-  the seconds select picker. Defaults to 24.
-
-* ``format`` - Applies to ``hour()``. The time format to use; either ``12`` or
-  ``24``. In case it's set to ``12`` the ``meridian`` select picker won't be
-  automatically displayed. It's up to you to either add it or provide means
-  to infer from the form context the right period of the day. Defaults to 24.
-
-* ``second`` - Applies to ``dateTime()`` and ``time()``. Set to ``true`` to
-  enable the seconds drop down. Defaults to ``false``.
-
-Creating DateTime Controls
-~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. php:method:: dateTime($fieldName, $options = [])
 
 * ``$fieldName`` - A string that will be used as a prefix for the HTML ``name``
   attribute of the ``select`` elements.
 * ``$options`` - An optional array including any of the
-  :ref:`general-control-options`, or specific datetime options (see above),
-  as well as any valid HTML attributes.
+  :ref:`general-control-options` as well as any valid HTML attributes.
 
-Creates a set of ``select`` elements for date and time.
-
-To control the order of controls, and any elements/content between the controls you
-can override the ``dateWidget`` template. By default the ``dateWidget`` template
-is::
-
-    {{year}}{{month}}{{day}}{{hour}}{{minute}}{{second}}{{meridian}}
-
-Calling the method without additional options will generate, by default,
-5 select pickers, for: year (4 digits), month (full English name), day (num),
-hour (num), minutes (num).
+This method will generate an input tag with type "datetime-local".
 
 For example ::
 
@@ -1627,122 +1598,41 @@ Output:
 
 .. code-block:: html
 
-    <select name="registered[year]">
-        <option value="" selected="selected"></option>
-        <option value="2022">2022</option>
-        ...
-        <option value="2012">2012</option>
-    </select>
-    <select name="registered[month]">
-        <option value="" selected="selected"></option>
-        <option value="01">January</option>
-        ...
-        <option value="12">December</option>
-    </select>
-    <select name="registered[day]">
-        <option value="" selected="selected"></option>
-        <option value="01">1</option>
-        ...
-        <option value="31">31</option>
-    </select>
-    <select name="registered[hour]">
-        <option value="" selected="selected"></option>
-        <option value="00">0</option>
-        ...
-        <option value="23">23</option>
-    </select>
-    <select name="registered[minute]">
-        <option value="" selected="selected"></option>
-        <option value="00">00</option>
-        ...
-        <option value="59">59</option>
-    </select>
+    <input type="datetime-local" name="registered" />
 
-To create datetime controls with custom classes/attributes on a specific select
-box, you can provide them as arrays of options for each component, within the
-``$options`` argument.
+The value for the input can be any valid datetime string or ``DateTime`` instance.
 
-For example::
+For example ::
 
-    echo $this->Form->dateTime('released', [
-        'year' => [
-            'class' => 'year-classname',
-        ],
-        'month' => [
-            'class' => 'month-class',
-            'data-type' => 'month',
-        ],
-    ]);
-
-Which would create the following two select pickers:
-
-.. code-block:: html
-
-    <select name="released[year]" class="year-class">
-        <option value="" selected="selected"></option>
-        <option value="00">0</option>
-        <option value="01">1</option>
-        <!-- .. snipped for brevity .. -->
-    </select>
-    <select name="released[month]" class="month-class" data-type="month">
-        <option value="" selected="selected"></option>
-        <option value="01">January</option>
-        <!-- .. snipped for brevity .. -->
-    </select>
-
-Creating Date Controls
-~~~~~~~~~~~~~~~~~~~~~~
-.. php:method:: date($fieldName, $options = [])
-
-* ``$fieldName`` - A field name that will be used as a prefix for the HTML
-  ``name`` attribute of the ``select`` elements.
-* ``$options`` - An optional array including any of the
-  :ref:`general-control-options`, of the :ref:`datetime-options`, any applicable
-  :ref:`time-options`, as well as any valid HTML attributes.
-
-Creates, by default, three select pickers populated with values for:
-year (4 digits), month (full English name) and day (numeric), respectively.
-
-You can further control the generated ``select`` elements by providing
-additional options.
-
-For example::
-
-    // Assuming current year is 2017; this disables day picker, removes empty
-    // option on year picker, limits lowest year, adds HTML attributes on year,
-    // adds a string 'empty' option on month, changes month to numeric
-    <?php
-        echo $this->Form->date('registered', [
-            'minYear' => 2018,
-            'monthNames' => false,
-            'empty' => [
-                'year' => false,
-                'month' => 'Choose month...'
-            ],
-            'day' => false,
-            'year' => [
-                'class' => 'cool-years',
-                'title' => 'Registration Year'
-            ]
-        ]);
-    ?>
+    <?= $this->form->dateTime('registered', ['value' => new DateTime()]) ?>
 
 Output:
 
 .. code-block:: html
 
-    <select class= "cool-years" name="registered[year]" title="Registration Year">
-        <option value="2022">2022</option>
-        <option value="2021">2021</option>
-        ...
-        <option value="2018">2018</option>
-    </select>
-    <select name="registered[month]">
-        <option value="" selected="selected">Choose month...</option>
-        <option value="01">1</option>
-        ...
-        <option value="12">12</option>
-    </select>
+    <input type="datetime-local" name="registered" value="2019-02-08T18:20:10" />
+
+Creating Date Controls
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. php:method:: date($fieldName, $options = [])
+
+* ``$fieldName`` - A field name that will be used as a prefix for the HTML
+  ``name`` attribute of the ``select`` elements.
+* ``$options`` - An optional array including any of the
+  :ref:`general-control-options` as well as any valid HTML attributes.
+
+This method will generate an input tag with type "date".
+
+For example ::
+
+    <?= $this->form->date('registered') ?>
+
+Output:
+
+.. code-block:: html
+
+    <input type="date" name="registered" />
 
 Creating Time Controls
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -1752,48 +1642,41 @@ Creating Time Controls
 * ``$fieldName`` - A field name that will be used as a prefix for the HTML
   ``name`` attribute of the ``select`` elements.
 * ``$options`` - An optional array including any of the
-  :ref:`general-control-options`, of the :ref:`datetime-options`, any applicable
-  :ref:`time-options`, as well as any valid HTML attributes.
+  :ref:`general-control-options` as well as any valid HTML attributes.
 
-Creates, by default, two ``select`` elements (``hour`` and ``minute``) populated
-with values for 24 hours and 60 minutes, respectively.
-Additionally, HTML attributes may be supplied in ``$options`` for each specific
-component. If ``$options['empty']`` is ``false``, the select picker will not
-include an empty default option.
+This method will generate an input tag with type "time".
 
-For example, to create a time range with minutes selectable in 15 minute
-increments, and to apply classes to the select boxes, you could do the
-following::
+For example ::
 
-    echo $this->Form->time('released', [
-        'interval' => 15,
-        'hour' => [
-            'class' => 'foo-class',
-        ],
-        'minute' => [
-            'class' => 'bar-class',
-        ],
-    ]);
+    echo $this->Form->time('released');
 
-Which would create the following two select pickers:
+Output:
 
 .. code-block:: html
 
-    <select name="released[hour]" class="foo-class">
-        <option value="" selected="selected"></option>
-        <option value="00">0</option>
-        <option value="01">1</option>
-        <!-- .. snipped for brevity .. -->
-        <option value="22">22</option>
-        <option value="23">23</option>
-    </select>
-    <select name="released[minute]" class="bar-class">
-        <option value="" selected="selected"></option>
-        <option value="00">00</option>
-        <option value="15">15</option>
-        <option value="30">30</option>
-        <option value="45">45</option>
-    </select>
+    <input type="time" name="released" />
+
+Creating Month Controls
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. php:method:: month(string $fieldName, array $attributes)
+
+* ``$fieldName`` - A field name that will be used as a prefix for the HTML
+  ``name`` attribute of the ``select`` element.
+* ``$options`` - An optional array including any of the
+  :ref:`general-control-options` as well as any valid HTML attributes.
+
+This method will generate an input tag with type "month".
+
+For example::
+
+    echo $this->Form->month('mob');
+
+Will output:
+
+.. code-block:: html
+
+    <input type="month" name="mob" />
 
 Creating Year Controls
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -1803,29 +1686,33 @@ Creating Year Controls
 * ``$fieldName`` - A field name that will be used as a prefix for the HTML
   ``name`` attribute of the ``select`` element.
 * ``$options`` - An optional array including any of the
-  :ref:`general-control-options`, of the :ref:`datetime-options`, any applicable
-  :ref:`date-options`, as well as any valid HTML attributes.
+  :ref:`general-control-options` as well as any valid HTML attributes.
+  Other valid options are:
 
-Creates a ``select`` element populated with the years from ``minYear``
-to ``maxYear`` (when these options are provided) or else with values starting
-from -5 years to +5 years counted from today. Additionally, HTML attributes may
-be supplied in ``$options``.
-If ``$options['empty']`` is ``false``, the select picker will not include an
-empty item in the list.
+  * ``min``: The lowest value to use in the year select picker.
+  * ``max``: The maximum value to use in the year select picker.
+  * ``order``: The order of year values in the year select picker.
+    Possible values are ``'asc'`` and ``'desc'``. Defaults to ``'desc'``.
+
+Creates a ``select`` element populated with the years from ``min`` to ``max``
+(when these options are provided) or else with values starting from -5 years
+to +5 years counted from today. Additionally, HTML attributes may be supplied
+in ``$options``. If ``$options['empty']`` is ``false``, the select picker will
+not include an empty item in the list.
 
 For example, to create a year range from 2000 to the current year you
 would do the following::
 
     echo $this->Form->year('purchased', [
-        'minYear' => 2000,
-        'maxYear' => date('Y')
+        'min' => 2000,
+        'max' => date('Y')
     ]);
 
 If it was 2009, you would get the following:
 
 .. code-block:: html
 
-    <select name="purchased[year]">
+    <select name="purchased">
         <option value=""></option>
         <option value="2009">2009</option>
         <option value="2008">2008</option>
@@ -1838,163 +1725,6 @@ If it was 2009, you would get the following:
         <option value="2001">2001</option>
         <option value="2000">2000</option>
     </select>
-
-Creating Month Controls
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. php:method:: month(string $fieldName, array $attributes)
-
-* ``$fieldName`` - A field name that will be used as a prefix for the HTML
-  ``name`` attribute of the ``select`` element.
-* ``$attributes`` - An optional array including any of the
-  :ref:`general-control-options`, of the :ref:`datetime-options`, any applicable
-  :ref:`date-options`, as well as any valid HTML attributes.
-
-Creates a ``select`` element populated with month names.
-
-For example::
-
-    echo $this->Form->month('mob');
-
-Will output:
-
-.. code-block:: html
-
-    <select name="mob[month]">
-        <option value=""></option>
-        <option value="01">January</option>
-        <option value="02">February</option>
-        <option value="03">March</option>
-        <option value="04">April</option>
-        <option value="05">May</option>
-        <option value="06">June</option>
-        <option value="07">July</option>
-        <option value="08">August</option>
-        <option value="09">September</option>
-        <option value="10">October</option>
-        <option value="11">November</option>
-        <option value="12">December</option>
-    </select>
-
-You can pass in, your own array of months to be used by setting the
-``'monthNames'`` attribute, or have months displayed as numbers by
-passing ``false``.
-
-E.g. ::
-
-  echo $this->Form->month('mob', ['monthNames' => false]);
-
-.. note::
-
-    The default months can be localized with CakePHP
-    :doc:`/core-libraries/internationalization-and-localization` features.
-
-Creating Day Controls
-~~~~~~~~~~~~~~~~~~~~~
-
-.. php:method:: day(string $fieldName, array $attributes)
-
-* ``$fieldName`` - A field name that will be used as a prefix for the HTML
-  ``name`` attribute of the ``select`` element.
-* ``$attributes`` - An optional array including any of the
-  :ref:`general-control-options`, of the :ref:`datetime-options`, any applicable
-  :ref:`date-options`, as well as any valid HTML attributes.
-
-Creates a ``select`` element populated with the (numerical) days of the
-month.
-
-To create an empty ``option`` element with a prompt text of your choosing
-(e.g. the first option is 'Day'), you can supply the text in the ``'empty'``
-parameter.
-
-For example::
-
-    echo $this->Form->day('created', ['empty' => 'Day']);
-
-Will output:
-
-.. code-block:: html
-
-    <select name="created[day]">
-        <option value="" selected="selected">Day</option>
-        <option value="01">1</option>
-        <option value="02">2</option>
-        <option value="03">3</option>
-        ...
-        <option value="31">31</option>
-    </select>
-
-Creating Hour Controls
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. php:method:: hour(string $fieldName, array $attributes)
-
-* ``$fieldName`` - A field name that will be used as a prefix for the HTML
-  ``name`` attribute of the ``select`` element.
-* ``$attributes`` - An optional array including any of the
-  :ref:`general-control-options`, of the :ref:`datetime-options`, any applicable
-  :ref:`time-options`, as well as any valid HTML attributes.
-
-Creates a ``select`` element populated with the hours of the day.
-
-You can create either 12 or 24 hour pickers using the ``'format'`` option::
-
-    echo $this->Form->hour('created', [
-        'format' => 12
-    ]);
-    echo $this->Form->hour('created', [
-        'format' => 24
-    ]);
-
-Creating Minute Controls
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. php:method:: minute(string $fieldName, array $attributes)
-
-* ``$fieldName`` - A field name that will be used as a prefix for the HTML
-  ``name`` attribute of the ``select`` element.
-* ``$attributes`` - An optional array including any of the
-  :ref:`general-control-options`, of the :ref:`datetime-options`, any applicable
-  :ref:`time-options`, as well as any valid HTML attributes.
-
-Creates a ``select`` element populated with values for the minutes of the hour.
-You can create a select picker that only contains specific values by using the
-``'interval'`` option.
-
-For example, if you wanted 10 minutes increments you would do the following::
-
-    // In your view template file
-    echo $this->Form->minute('arrival', [
-        'interval' => 10
-    ]);
-
-This would output:
-
-.. code-block:: html
-
-    <select name="arrival[minute]">
-        <option value="" selected="selected"></option>
-        <option value="00">00</option>
-        <option value="10">10</option>
-        <option value="20">20</option>
-        <option value="30">30</option>
-        <option value="40">40</option>
-        <option value="50">50</option>
-    </select>
-
-Creating Meridian Controls
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. php:method:: meridian(string $fieldName, array $attributes)
-
-* ``$fieldName`` - A field name that will be used as a prefix for the HTML
-  ``name`` attribute of the ``select`` element.
-* ``$attributes`` - An optional array including any of the
-  :ref:`general-control-options` as well as any valid HTML attributes.
-
-Creates a ``select`` element populated with 'am' and 'pm'. This is useful when
-the hour format is set to ``12`` instead of ``24``, as it allows to specify the
-period of the day to which the hour belongs.
 
 .. _create-label:
 
@@ -2014,27 +1744,27 @@ the HTML ``for`` attribute of the element; if ``$text`` is undefined,
 
 E.g. ::
 
-    echo $this->Form->label('User.name');
-    echo $this->Form->label('User.name', 'Your username');
+    echo $this->Form->label('name');
+    echo $this->Form->label('name', 'Your username');
 
 Output:
 
 .. code-block:: html
 
-    <label for="user-name">Name</label>
-    <label for="user-name">Your username</label>
+    <label for="name">Name</label>
+    <label for="name">Your username</label>
 
 With the third parameter ``$options`` you can set the id or class::
 
-    echo $this->Form->label('User.name', null, ['id' => 'user-label']);
-    echo $this->Form->label('User.name', 'Your username', ['class' => 'highlight']);
+    echo $this->Form->label('name', null, ['id' => 'user-label']);
+    echo $this->Form->label('name', 'Your username', ['class' => 'highlight']);
 
 Output:
 
 .. code-block:: html
 
-    <label for="user-name" id="user-label">Name</label>
-    <label for="user-name" class="highlight">Your username</label>
+    <label for="name" id="user-label">Name</label>
+    <label for="name" class="highlight">Your username</label>
 
 Displaying and Checking Errors
 ==============================
@@ -2078,7 +1808,7 @@ Example::
             ->notEmpty('ticket');
     }
 
-    // And inside Templates/Tickets/add.ctp you have:
+    // And inside Templates/Tickets/add.php you have:
     echo $this->Form->text('ticket');
 
     if ($this->Form->isFieldError('ticket')) {
@@ -2106,8 +1836,6 @@ for the *Ticket* field, your form would output:
     each one, you will probably be better off defining a custom error message
     inside the respective :ref:`validator rules<creating-validators>`.
 
-.. TODO:: Add examples.
-
 Checking for Errors
 -------------------
 
@@ -2123,6 +1851,33 @@ Example::
     if ($this->Form->isFieldError('gender')) {
         echo $this->Form->error('gender');
     }
+
+
+.. _html5-validity-messages:
+
+Displaying validation messages in HTML5 validity messages
+---------------------------------------------------------
+
+If the ``autoSetCustomValidity`` FormHelper option is set to ``true``, error messages for
+the field's required and notBlank validation rules will be used in lieu of the default
+browser HTML5 required messages. Enabling the option will add the ``onvalid`` and ``oninvalid``
+event attributes to your fields, for example::
+
+    <input type="text" name="field" required onvalid="this.setCustomValidity('')" oninvalid="this.setCustomValidity('Custom notBlank message')" />
+
+If you want to manually set those events with custom JavaScript, you can set the ``autoSetCustomValidity``
+option to ``false`` and use the special ``customValidityMessage`` template variable instead. This
+template variable is added when a field is required::
+
+    // example template
+    [
+        'input' => '<input type="{{type}}" name="{{name}}" data-error-message="{{customValidityMessage}}" {{attrs}}/>',
+    ]
+
+    // would create an input like this
+    <input type="text" name="field" required data-error-message="Custom notBlank message" />
+
+You could then use JavaScript to set the ``onvalid`` and ``oninvalid`` events as you like.
 
 Creating Buttons and Submit Elements
 ====================================
@@ -2200,7 +1955,7 @@ of ``'button'``.
 
 **Options for Button**
 
-* ``$options['type']`` - You can set this to one of the following three
+* ``'type'`` - You can set this to one of the following three
   possible values:
 
   #. ``'submit'`` - Similarly to the ``$this->Form->submit()`` method it will
@@ -2209,8 +1964,14 @@ of ``'button'``.
   #. ``'reset'`` - Creates a form reset button.
   #. ``'button'`` - Creates a standard push button.
 
-* ``$options['escape']`` - Boolean. If set to ``true`` it will HTML encode
-  the value provided inside ``$title``. Defaults to ``false``.
+* ``'escapeTitle'`` - Boolean. If set to ``true`` it will HTML encode
+  the value provided inside ``$title``. Defaults to ``true``.
+
+* ``'escape'`` - Boolean. If set to ``true`` it will HTML encode
+  all the HTML attributes generated for the button. Defaults to ``true``.
+
+* ``'confirm'`` - The confirmation message to display on click. Defaults to
+  ``null``.
 
 For example::
 
@@ -2228,12 +1989,12 @@ Will output:
     <button type="reset">Reset the Form</button>
     <button type="submit">Submit Form</button>
 
-Example of use of the ``'escape'`` option::
+Example use of the ``'escapeTitle'`` option::
 
-    // Will render escaped HTML.
+    // Will render unescaped HTML.
     echo $this->Form->button('<em>Submit Form</em>', [
         'type' => 'submit',
-        'escape' => true
+        'escapeTitle' => false,
     ]);
 
 Closing the Form
@@ -2315,7 +2076,7 @@ SecurityComponent.
 
 For example::
 
-    // In Templates/Tickets/index.ctp
+    // In Templates/Tickets/index.php
     <?= $this->Form->postButton('Delete Record', ['controller' => 'Tickets', 'action' => 'delete', 5]) ?>
 
 Will output HTML similar to:
@@ -2354,7 +2115,14 @@ Creating POST Links
   as any valid HTML attributes.
 
 Creates an HTML link, but accesses the URL using the method you specify
-(defaults to POST). Requires JavaScript to be enabled in browser.
+(defaults to POST). Requires JavaScript to be enabled in browser::
+
+    // In your template, e.g. to delete an article
+    <?= $this->Form->postLink(
+    	'Delete',
+    	['action' => 'delete', $article->id],
+    	['confirm' => 'Are you sure?'])
+    ?>
 
 **Options for POST Link**
 
@@ -2420,8 +2188,6 @@ You can also change the templates at runtime using the ``setTemplates()`` method
         'inputContainer' => '<div class="form-control">{{content}}</div>',
     ];
     $this->Form->setTemplates($myTemplates);
-    // Prior to 3.4
-    $this->Form->templates($myTemplates);
 
 .. warning::
 
@@ -2452,7 +2218,7 @@ For example::
     ]);
 
     // Create a radio set with our custom wrapping div.
-    echo $this->Form->control('User.email_notifications', [
+    echo $this->Form->control('email_notifications', [
         'options' => ['y', 'n'],
         'type' => 'radio'
     ]);
@@ -2503,9 +2269,6 @@ Output:
         <input name="password" id="password" type="password">
         <span class="help">At least 8 characters long.</span>
     </div>
-
-.. versionadded:: 3.1
-    The templateVars option was added in 3.1.0
 
 Moving Checkboxes & Radios Outside of a Label
 ---------------------------------------------
@@ -2595,8 +2358,6 @@ specific fields from the generated controls, set them to ``false`` in the
 ``$fields`` parameter::
 
     echo $this->Form->allControls(['password' => false]);
-    // Or prior to 3.4.0:
-    echo $this->Form->allInputs(['password' => false]);
 
 .. _associated-form-inputs:
 
@@ -2701,7 +2462,6 @@ could do the following::
 
     class AutocompleteWidget implements WidgetInterface
     {
-
         protected $_templates;
 
         public function __construct($templates)
@@ -2776,7 +2536,6 @@ widgets using the ``addWidget()`` method would look like::
     );
 
     // Using an instance - requires you to resolve dependencies.
-    // Prior to 3.6.0 use widgetRegistry() to fetch widgets.
     $autocomplete = new AutocompleteWidget(
         $this->Form->getTemplater(),
         $this->Form->getWidgetLocator()->get('text'),

@@ -3,8 +3,8 @@ Tutorial - Criando um Bookmarker - Parte 1
 
 Esse tutorial vai guiar você através da criação de uma simples aplicação de
 marcação (bookmarker). Para começar, nós vamos instalar o CakePHP, criar
-nosso banco de dados, e usar as ferramentas que o CakePHP fornece para obter
-nossa aplicação de pé rápido.
+nosso banco de dados, e usar as ferramentas que o CakePHP fornece para subir
+nossa aplicação de forma rápida.
 
 Aqui está o que você vai precisar:
 
@@ -36,7 +36,7 @@ Em seguida, basta digitar a seguinte linha no seu terminal a partir do diretóri
 onde se localiza o arquivo ``composer.phar`` para instalar o esqueleto de
 aplicações do CakePHP no diretório ``bookmarker``. ::
 
-    php composer.phar create-project --prefer-dist cakephp/app bookmarker
+    php composer.phar create-project --prefer-dist cakephp/app:4.* bookmarker
 
 A vantagem de usar Composer é que ele irá completar automaticamente um conjunto
 importante de tarefas, como configurar as permissões de arquivo e criar a sua
@@ -91,7 +91,9 @@ Criando o banco de dados
 Em seguida, vamos criar o banco de dados para a nossa aplicação. Se você
 ainda não tiver feito isso, crie um banco de dados vazio para uso
 nesse tutorial, com um nome de sua escolha, por exemplo, ``cake_bookmarks``.
-Você pode executar o seguinte SQL para criar as tabelas necessárias::
+Você pode executar o seguinte SQL para criar as tabelas necessárias:
+
+.. code-block:: mysql
 
     CREATE TABLE users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -130,7 +132,7 @@ Você pode executar o seguinte SQL para criar as tabelas necessárias::
     );
 
 Você deve ter notado que a tabela ``bookmarks_tags`` utilizada uma chave
-primária composta. O CakePHP suporta chaves primárias compostas quase todos os
+primária composta. O CakePHP suporta chaves primárias compostas em quase todos os
 lugares, tornando mais fácil construir aplicações multi-arrendados.
 
 Os nomes de tabelas e colunas que usamos não foram arbitrárias. Usando
@@ -142,7 +144,7 @@ legados inconsistentes, mas aderir às convenções vai lhe poupar tempo.
 Configurando o banco de dados
 =============================
 
-Em seguida, vamos dizer ao CakePHP onde o nosso banco de dados está como se
+Em seguida, vamos dizer ao CakePHP onde o nosso banco de dados está e como se
 conectar a ele. Para muitos, esta será a primeira e última vez que você vai
 precisar configurar qualquer coisa.
 
@@ -265,12 +267,12 @@ permitir a encontrar todos os bookmarks que têm as tags 'funny', 'cat' e
         }
     );
 
-O acima define uma nova "rota" que liga o caminho ``/bookmarks/tagged/*``, a
+O trecho acima define uma nova "rota" que liga o caminho ``/bookmarks/tagged/*``, a
 ``BookmarksController::tags()``. Ao definir rotas, você pode isolar como
 suas URLs parecerão, de como eles são implementadas. Se fôssemos visitar
 ``http://localhost:8765/bookmarks/tagged``, deveriamos ver uma página de erro
 informativa do CakePHP. Vamos implementar esse método ausente agora. Em
-**src/Controller/BookmarksController.php** adicione o seguinte::
+**src/Controller/BookmarksController.php** adicione o seguinte trecho::
 
     public function tags()
     {
@@ -355,7 +357,7 @@ Agora você deve ser capaz de visitar a URL ``/bookmarks/tagged/funny`` e ver
 todas os bookmarks com a tag 'funny'.
 
 Até agora, nós criamos uma aplicação básica para gerenciar bookmarks, tags e
-users. No entanto, todos podem ver as tags de toda a gente. No próximo
+users. No entanto, todos podem ver as tags de todos os usuários. No próximo
 capítulo, vamos implementar a autenticação e restringir os bookmarks visíveis
 para somente aqueles que pertencem ao usuário atual.
 

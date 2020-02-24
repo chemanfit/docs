@@ -33,6 +33,8 @@ handling for your application. The following options are supported:
 * ``extraFatalErrorMemory`` - int - Set to the number of megabytes to increase
   the memory limit by when a fatal error is encountered. This allows breathing
   room to complete logging or error handling.
+* ``errorLogger`` - \Cake\Error\ErrorLogger - The class responsible for logging
+  errors and unhandled exceptions.
 
 By default, PHP errors are displayed when ``debug`` is ``true``, and logged
 when debug is ``false``. The fatal error handler will be called independent
@@ -51,7 +53,7 @@ message, file and line (``debug`` enabled).
 Changing Exception Handling
 ===========================
 
-Exception handling offers 3 ways to tailor how exceptions are handled.  Each
+Exception handling offers several ways to tailor how exceptions are handled.  Each
 approach gives you different amounts of control over the exception handling
 process.
 
@@ -73,8 +75,8 @@ The default error handler renders all uncaught exceptions your application
 raises with the help of ``Cake\Error\ExceptionRenderer``, and your application's
 ``ErrorController``.
 
-The error page views are located at **src/Template/Error/**. All 4xx errors use
-the **error400.ctp** template, and 5xx errors use the **error500.ctp**. Your
+The error page views are located at **templates/Error/**. All 4xx errors use
+the **error400.php** template, and 5xx errors use the **error500.php**. Your
 error templates will have the following variables available:
 
 * ``message`` The exception message.
@@ -93,18 +95,18 @@ data returned by ``getAttributes()`` will be exposed as view variables as well.
 Customize the Error Page Layout
 -------------------------------
 
-By default error templates use **src/Template/Layout/error.ctp** for a layout.
+By default error templates use **templates/Layout/error.php** for a layout.
 You can use the ``layout`` property to pick a different layout::
 
-    // inside src/Template/Error/error400.ctp
+    // inside templates/Error/error400.php
     $this->layout = 'my_error';
 
-The above would use  **src/Template/Layout/my_error.ctp** as the layout for your
+The above would use  **templates/Layout/my_error.php** as the layout for your
 error pages.
 
 Many exceptions raised by CakePHP will render specific view templates in debug
 mode. With debug turned off all exceptions raised by CakePHP will use either
-**error400.ctp** or **error500.ctp** based on their status code.
+**error400.php** or **error500.php** based on their status code.
 
 Customize the ErrorController
 =============================
@@ -113,6 +115,42 @@ The ``App\Controller\ErrorController`` class is used by CakePHP's exception
 rendering to render the error page view and receives all the standard request
 life-cycle events. By modifying this class you can control which components are
 used and which templates are rendered.
+
+If your application uses :ref:`prefix-routing` you can create custom error
+controllers for each routing prefix. For example, if you had an ``Admin``
+prefix. You could create the following class::
+
+    namespace App\Controller\Admin;
+
+    use App\Controller\AppController;
+    use Cake\Event\EventInterface;
+
+    class ErrorController extends AppController
+    {
+        /**
+         * Initialization hook method.
+         *
+         * @return void
+         */
+        public function initialize(): void
+        {
+            $this->loadComponent('RequestHandler');
+        }
+
+        /**
+         * beforeRender callback.
+         *
+         * @param \Cake\Event\EventInterface $event Event.
+         * @return void
+         */
+        public function beforeRender(EventInterface $event)
+        {
+            $this->viewBuilder()->setTemplatePath('Error');
+        }
+    }
+
+This controller would only be used when an error is encountered in a prefixed
+controller, and allows you to define prefix specific logic/templates as needed.
 
 Change the ExceptionRenderer
 ============================
@@ -254,7 +292,7 @@ standard error page, you can override it::
 
         public function handleFatalError($code, $description, $file, $line)
         {
-            return 'A fatal error has happened';
+            echo 'A fatal error has happened';
         }
     }
 
@@ -275,7 +313,7 @@ If your application contained the following exception::
     }
 
 You could provide nice development errors, by creating
-**src/Template/Error/missing_widget.ctp**. When in production mode, the above
+**templates/Error/missing_widget.php**. When in production mode, the above
 error would be treated as a 500 error and use the **error500** template.
 
 If your exceptions have a code between ``400`` and ``506`` the exception code
@@ -343,10 +381,6 @@ exceptions for HTTP methods
 
     Used for doing a 403 Forbidden error.
 
-.. versionadded:: 3.1
-
-    InvalidCsrfTokenException has been added.
-
 .. php:exception:: InvalidCsrfTokenException
 
     Used for doing a 403 error caused by an invalid CSRF token.
@@ -363,19 +397,13 @@ exceptions for HTTP methods
 
     Used for doing a 406 Not Acceptable error.
 
-    .. versionadded:: 3.1.7 NotAcceptableException has been added.
-
 .. php:exception:: ConflictException
 
     Used for doing a 409 Conflict error.
 
-    .. versionadded:: 3.1.7 ConflictException has been added.
-
 .. php:exception:: GoneException
 
     Used for doing a 410 Gone error.
-
-    .. versionadded:: 3.1.7 GoneException has been added.
 
 For more details on HTTP 4xx error status codes see :rfc:`2616#section-10.4`.
 
@@ -391,15 +419,12 @@ For more details on HTTP 4xx error status codes see :rfc:`2616#section-10.4`.
 
     Used for doing a 503 Service Unavailable error.
 
-    .. versionadded:: 3.1.7 Service Unavailable has been added.
-
 For more details on HTTP 5xx error status codes see :rfc:`2616#section-10.5`.
 
 You can throw these exceptions from your controllers to indicate failure states,
 or HTTP errors. An example use of the HTTP exceptions could be rendering 404
 pages for items that have not been found::
 
-    // Prior to 3.6 use Cake\Network\Exception\NotFoundException
     use Cake\Http\Exception\NotFoundException;
 
     public function view($id = null)
@@ -409,7 +434,7 @@ pages for items that have not been found::
             throw new NotFoundException(__('Article not found'));
         }
         $this->set('article', $article);
-        $this->set('_serialize', ['article']);
+        $this->viewBuilder()->setOption('serialize', ['article']);
     }
 
 By using exceptions for HTTP errors, you can keep your code both clean, and give
@@ -430,7 +455,7 @@ to indicate failure states. For example::
             throw new NotFoundException(__('Article not found'));
         }
         $this->set('article', 'article');
-        $this->set('_serialize', ['article']);
+        $this->viewBuilder()->setOption('serialize', ['article']);
     }
 
 The above would cause the configured exception handler to catch and
@@ -536,8 +561,6 @@ In addition, CakePHP uses the following exceptions:
 
     An entity couldn't be saved/deleted while using :php:meth:`Cake\\ORM\\Table::saveOrFail()` or
     :php:meth:`Cake\\ORM\\Table::deleteOrFail()`.
-
-    .. versionadded:: 3.4.1 PersistenceFailedException has been added.
 
 .. php:namespace:: Cake\Datasource\Exception
 

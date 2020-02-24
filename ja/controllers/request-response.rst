@@ -42,6 +42,10 @@ CakePHP のリクエストオブジェクトは、入ってきたリクエスト
     // 3.4.0 より前
     $controllerName = $this->request->param('controller');
 
+全てのルーティングパラメーターを配列として取得するためには ``getAttribute()`` を使用します。 ::
+
+    $params = $this->request->getAttribute('params');
+
 すべての :ref:`route-elements` は、このインターフェイスを通してアクセスされます。
 
 :ref:`route-elements` に加えて :ref:`passed-arguments` へのアクセスがしばしば必要になります。
@@ -263,7 +267,6 @@ post 形式でデータを交換することがしばしばあります。 :php:
   に由来するものかどうかを調べます。
 * ``is('ssl')`` リクエストが SSL 経由かどうかを調べます。
 * ``is('flash')`` リクエストに Flash の User-Agent があるかどうかを調べます。
-* ``is('requested')`` リクエストに、値が１のクエリーパラメーター 「requested」があるかどうかを調べます。
 * ``is('json')`` リクエストに 「json」 の拡張子を持ち 「application/json」
   MIME タイプを受付けるかどうかを調べます。
 * ``is('xml')`` リクエストが 「xml」拡張子を持ち、「application/xml」または「text/xml」
@@ -356,7 +359,7 @@ HTTP ヘッダーの読み込み
 いくつかの apache インストール環境では、 ``Authorization`` ヘッダーにアクセスできませんが、
 CakePHP は、必要に応じて apache 固有のメソッドを介して利用できるようにします。
 
-.. php:method:: referer($local = false)
+.. php:method:: referer($local = true)
 
 リクエストのリファラーを返します。
 
@@ -503,7 +506,7 @@ Accept ヘッダーの確認
     return $this->response;
 
 上記の例のようにメソッドにファイルのパスを渡す必要があります。CakePHP は、
-`Cake\\Http\\Reponse::$_mimeTypes` に登録された、よく知られるファイルタイプであれば
+`Cake\\Http\\Response::$_mimeTypes` に登録された、よく知られるファイルタイプであれば
 正しいコンテンツタイプヘッダーを送ります。 :php:meth:`Cake\\Http\\Response::withFile()` を呼ぶ前に
 :php:meth:`Cake\\Http\\Response::withType()` メソッドを使って、新しいタイプを追加できます。
 
@@ -537,6 +540,11 @@ download
     {
         $icsString = $this->Calendars->generateIcs();
         $response = $this->response;
+
+        // レスポンスのボディーに文字列コンテンツを挿入する (3.4.0 以降)
+        $response = $response->withStringBody($icsString);
+
+        // レスポンスのボディーに文字列コンテンツを挿入する (3.4.0 より前)
         $response->body($icsString);
 
         $response = $response->withType('ics');
@@ -1028,4 +1036,4 @@ CakePHP 3.4.0 以降、レスポンスオブジェクトはレスポンスを不
 
 .. meta::
     :title lang=ja: リクエストとレスポンスオブジェクト
-    :keywords lang=ja: request controller,request parameters,array indexes,purpose index,response objects,domain information,request object,request data,interrogating,params,previous versions,introspection,dispatcher,rout,data structures,arrays,ip address,migration,indexes,cakephp,PSR-7,immutable
+    :keywords lang=ja: request controller,request parameters,array indexes,purpose index,response objects,domain information,request object,request data,interrogating,params,parameters,previous versions,introspection,dispatcher,rout,data structures,arrays,ip address,migration,indexes,cakephp,PSR-7,immutable

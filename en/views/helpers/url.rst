@@ -49,7 +49,7 @@ URL (starting with '/') with the full base URL prepended::
     // Output
     http://somedomain.com/posts
 
-URL with GET params and fragment anchor::
+URL with GET parameters and fragment anchor::
 
     echo $this->Url->build([
         "controller" => "Posts",
@@ -61,17 +61,14 @@ URL with GET params and fragment anchor::
     // Output
     /posts/search?foo=bar#first
 
-The above example uses the ``?`` key which is useful when you want to be
-explicit about the query string parameters you are using, or if you want a query
-string parameter that shares a name with one of your route placeholders.
+The above example uses the ``?`` special key for specifying query string
+parameters and ``#`` key for URL fragment.
 
 URL for named route::
 
-    echo $this->Url->build(['_name' => 'product-page', 'slug' => 'i-m-slug']);
-
-    // Assuming route is setup like:
+    // Assuming a route is setup as a named route:
     // $router->connect(
-    //     '/products/:slug',
+    //     '/products/{slug}',
     //     [
     //         'controller' => 'Products',
     //         'action' => 'view',
@@ -80,6 +77,9 @@ URL for named route::
     //         '_name' => 'product-page',
     //     ]
     // );
+
+    echo $this->Url->build(['_name' => 'product-page', 'slug' => 'i-m-slug']);
+    // Will result in:
     /products/i-m-slug
 
 The 2nd parameter allows you to define options controlling HTML escaping, and
@@ -119,13 +119,6 @@ methods for each of these asset types::
 
     // Or disable timestamps for one method call.
     $this->Url->css('app.css', ['timestamp' => false]);
-
-.. versionadded:: 3.2.4
-    The asset helper methods were added in 3.2.4.
-
-.. versionadded:: 3.6.0
-    The ``timestamp`` option was added to asset helper methods.
-
 
 For further information check
 `Router::url <https://api.cakephp.org/3.x/class-Cake.Routing.Router.html#_url>`_

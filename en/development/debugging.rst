@@ -24,13 +24,6 @@ default.
 Output from this function is only shown if the core ``$debug`` variable
 has been set to ``true``.
 
-.. versionadded:: 3.3.0
-
-    Calling this method will return passed ``$var``, so that you can, for instance,
-    place it in return statements, for example::
-
-        return debug($data); // will return $data in any case.
-
 Also see ``dd()``, ``pr()`` and ``pj()``.
 
 .. php:function:: stackTrace()
@@ -39,8 +32,6 @@ The ``stackTrace()`` function is available globally, and allows you to output
 a stack trace wherever the function is called.
 
 .. php:function:: breakpoint()
-
-.. versionadded:: 3.1
 
 If you have `Psysh <http://psysh.org/>`_ installed you can use this
 function in CLI enviroments to open an interactive console with the current
@@ -60,8 +51,12 @@ Using the Debugger Class
 
 .. php:class:: Debugger
 
+
 To use the debugger, first ensure that ``Configure::read('debug')`` is
 set to ``true``.
+
+You can use ``filter_var(env('DEBUG', true), FILTER_VALIDATE_BOOLEAN),`` in **config/app.php** file to ensure that ``debug`` is a boolean.
+
 
 Outputting Values
 =================
@@ -106,10 +101,6 @@ you can mask specific keys::
         'password' => 'xxxxx',
         'awsKey' => 'yyyyy',
     ]);
-
-.. versionadded:: 3.4.0
-
-    Output masking was added in 3.4.0
 
 Logging With Stack Traces
 =========================
@@ -200,8 +191,9 @@ Debug Kit
 
 DebugKit is a plugin that provides a number of good debugging tools. It
 primarily provides a toolbar in the rendered HTML, that provides a plethora of
-information about your application and the current request. See the
-:doc:`/debug-kit` chapter for how to install and use DebugKit.
+information about your application and the current request. See the `DebugKit
+Documentation <https://book.cakephp.org/debugkit/>`__ for how to install and use
+DebugKit.
 
 .. meta::
     :title lang=en: Debugging

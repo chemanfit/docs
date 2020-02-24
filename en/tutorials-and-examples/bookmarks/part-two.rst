@@ -25,7 +25,7 @@ AppController::
 
     class AppController extends Controller
     {
-        public function initialize()
+        public function initialize(): void
         {
             $this->loadComponent('Flash');
             $this->loadComponent('Auth', [
@@ -69,7 +69,7 @@ not written that code yet. So let's create the login action::
         }
     }
 
-And in **src/Template/Users/login.ctp** add the following::
+And in **templates/Users/login.php** add the following::
 
     <h1>Login</h1>
     <?= $this->Form->create() ?>
@@ -77,11 +77,6 @@ And in **src/Template/Users/login.ctp** add the following::
     <?= $this->Form->control('password') ?>
     <?= $this->Form->button('Login') ?>
     <?= $this->Form->end() ?>
-
-.. note::
-
-   The ``control()`` method is available since 3.4. For prior versions you can
-   use the ``input()`` method instead.
 
 Now that we have a simple login form, we should be able to log in with one of
 the users that has a hashed password.
@@ -98,7 +93,7 @@ Adding Logout
 Now that people can log in, you'll probably want to provide a way to log out as
 well. Again, in the ``UsersController``, add the following code::
 
-    public function initialize()
+    public function initialize(): void
     {
         parent::initialize();
         $this->Auth->allow(['logout']);
@@ -121,7 +116,7 @@ If you aren't logged in and you try to visit **/users/add** you will be kicked
 to the login page. We should fix that as we want to allow people to sign up for
 our application. In the ``UsersController`` add the following::
 
-    public function initialize()
+    public function initialize(): void
     {
         parent::initialize();
         // Add the 'add' action to the allowed actions list.
@@ -130,7 +125,7 @@ our application. In the ``UsersController`` add the following::
 
 The above tells ``AuthComponent`` that the ``add()`` action does *not* require
 authentication or authorization. You may want to take the time to clean up the
-**Users/add.ctp** and remove the misleading links, or continue on to the next
+**Users/add.php** and remove the misleading links, or continue on to the next
 section. We won't be building out user editing, viewing or listing in this
 tutorial so they will not work as ``AuthComponent`` will deny you access to those
 controller actions.
@@ -157,7 +152,7 @@ Also, add the following to the configuration for ``Auth`` in your
 
 Your ``initialize()`` method should now look like::
 
-        public function initialize()
+        public function initialize(): void
         {
             $this->loadComponent('Flash');
             $this->loadComponent('Auth', [
@@ -212,7 +207,7 @@ Now if you try to view, edit or delete a bookmark that does not belong to you,
 you should be redirected back to the page you came from. If no error message is
 displayed, add the following to your layout::
 
-    // In src/Template/Layout/default.ctp
+    // In templates/layout/default.php
     <?= $this->Flash->render() ?>
 
 You should now see the authorization error messages.
@@ -227,7 +222,7 @@ While view and delete are working, edit, add and index have a few problems:
 #. The list page shows bookmarks from other users.
 
 Let's tackle the add form first. To begin with remove the ``control('user_id')``
-from **src/Template/Bookmarks/add.ctp**. With that removed, we'll also update
+from **templates/Bookmarks/add.php**. With that removed, we'll also update
 the ``add()`` action from **src/Controller/BookmarksController.php** to look
 like::
 
@@ -245,7 +240,7 @@ like::
         }
         $tags = $this->Bookmarks->Tags->find('list');
         $this->set(compact('bookmark', 'tags'));
-        $this->set('_serialize', ['bookmark']);
+        $this->viewBuilder()->setOption('serialize', ['bookmark']);
     }
 
 By setting the entity property with the session data, we remove any possibility
@@ -269,7 +264,7 @@ edit form and action. Your ``edit()`` action from
         }
         $tags = $this->Bookmarks->Tags->find('list');
         $this->set(compact('bookmark', 'tags'));
-        $this->set('_serialize', ['bookmark']);
+        $this->viewBuilder()->setOption('serialize', ['bookmark']);
     }
 
 List View
@@ -287,7 +282,7 @@ that by updating the call to ``paginate()``. Make your ``index()`` action from
             ]
         ];
         $this->set('bookmarks', $this->paginate($this->Bookmarks));
-        $this->set('_serialize', ['bookmarks']);
+        $this->viewBuilder()->setOption('serialize', ['bookmarks']);
     }
 
 We should also update the ``tags()`` action and the related finder method, but
@@ -312,8 +307,8 @@ can add a virtual/computed field to the entity. In
 
     protected function _getTagString()
     {
-        if (isset($this->_properties['tag_string'])) {
-            return $this->_properties['tag_string'];
+        if (isset($this->_fields['tag_string'])) {
+            return $this->_fields['tag_string'];
         }
         if (empty($this->tags)) {
             return '';
@@ -347,7 +342,7 @@ Updating the Views
 ------------------
 
 With the entity updated we can add a new control for our tags. In
-**src/Template/Bookmarks/add.ctp** and **src/Template/Bookmarks/edit.ctp**,
+**templates/Bookmarks/add.php** and **templates/Bookmarks/edit.php**,
 replace the existing ``tags._ids`` control with the following::
 
     echo $this->Form->control('tag_string', ['type' => 'text']);

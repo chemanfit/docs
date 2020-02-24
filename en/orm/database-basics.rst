@@ -19,7 +19,7 @@ The easiest way to create a database connection is using a ``DSN`` string::
     use Cake\Datasource\ConnectionManager;
 
     $dsn = 'mysql://root:password@localhost/my_database';
-    ConnectionManager::config('default', ['url' => $dsn]);
+    ConnectionManager::setConfig('default', ['url' => $dsn]);
 
 Once created, you can access the connection object to start using it::
 
@@ -63,6 +63,10 @@ You can use prepared statements to insert parameters::
 
 It is also possible to use complex data types as arguments::
 
+    use Cake\Datasource\ConnectionManager;
+    use DateTime;
+
+    $connection = ConnectionManager::get('default');
     $results = $connection
         ->execute(
             'SELECT * FROM articles WHERE created >= :created',
@@ -77,7 +81,7 @@ Instead of writing the SQL manually, you can use the query builder::
         ->newQuery()
         ->select('*')
         ->from('articles')
-        ->where(['created >' => new DateTime('1 day ago'), ['created' => 'datetime']])
+        ->where(['created >' => new DateTime('1 day ago')], ['created' => 'datetime'])
         ->order(['title' => 'DESC'])
         ->execute()
         ->fetchAll('assoc');
@@ -88,6 +92,7 @@ Running Insert Statements
 Inserting rows in the database is usually a matter of a couple lines::
 
     use Cake\Datasource\ConnectionManager;
+    use DateTime;
 
     $connection = ConnectionManager::get('default');
     $connection->insert('articles', [
@@ -134,7 +139,7 @@ like::
             'persistent' => false,
             'host' => 'localhost',
             'username' => 'my_app',
-            'password' => 'sekret',
+            'password' => 'secret',
             'database' => 'my_app',
             'encoding' => 'utf8mb4',
             'timezone' => 'UTC',
@@ -145,18 +150,18 @@ like::
 The above will create a 'default' connection, with the provided parameters. You
 can define as many connections as you want in your configuration file. You can
 also define additional connections at runtime using
-:php:meth:`Cake\\Datasource\\ConnectionManager::config()`. An example of that
+:php:meth:`Cake\\Datasource\\ConnectionManager::setConfig()`. An example of that
 would be::
 
     use Cake\Datasource\ConnectionManager;
 
-    ConnectionManager::config('default', [
+    ConnectionManager::setConfig('default', [
         'className' => 'Cake\Database\Connection',
         'driver' => 'Cake\Database\Driver\Mysql',
         'persistent' => false,
         'host' => 'localhost',
         'username' => 'my_app',
-        'password' => 'sekret',
+        'password' => 'secret',
         'database' => 'my_app',
         'encoding' => 'utf8mb4',
         'timezone' => 'UTC',
@@ -166,7 +171,7 @@ would be::
 Configuration options can also be provided as a :term:`DSN` string. This is
 useful when working with environment variables or :term:`PaaS` providers::
 
-    ConnectionManager::config('default', [
+    ConnectionManager::setConfig('default', [
         'url' => 'mysql://my_app:sekret@localhost/my_app?encoding=utf8&timezone=UTC&cacheMetadata=true',
     ]);
 
@@ -190,8 +195,8 @@ driver
     Examples of short classnames are Mysql, Sqlite, Postgres, and Sqlserver.
 persistent
     Whether or not to use a persistent connection to the database. This option
-    is not supported by SqlServer. As of CakePHP version 3.4.13 an exception is
-    thrown if you attempt to set ``persistent`` to ``true`` with SqlServer.
+    is not supported by SqlServer. An exception is thrown if you attempt to set
+    ``persistent`` to ``true`` with SqlServer.
 host
     The database server's hostname (or IP address).
 username
@@ -241,9 +246,9 @@ flags
     by the driver you are using.
 cacheMetadata
     Either boolean ``true``, or a string containing the cache configuration to
-    store meta data in. Having metadata caching disable is not advised and can
-    result in very poor performance. See the :ref:`database-metadata-cache`
-    section for more information.
+    store meta data in. Having metadata caching disabled by setting it to ``false``
+    is not advised and can result in very poor performance. See the
+    :ref:`database-metadata-cache` section for more information.
 mask
     Set the permissions on the generated database file. (Only supported by SQLite)
 
@@ -255,6 +260,13 @@ table BigBoxesTable, and your controller BigBoxesController, everything will
 work together automatically. By convention, use underscores, lower case, and
 plural forms for your database table names - for example: bakers,
 pastry\_stores, and savory\_cakes.
+
+.. note::
+
+    If your MySQL server is configured with ``skip-character-set-client-handshake``
+    then you MUST use the ``flags`` config to set your charset encoding. For e.g.::
+
+        'flags' => [\PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8']
 
 .. php:namespace:: Cake\Datasource
 
@@ -286,10 +298,10 @@ Attempting to load connections that do not exist will throw an exception.
 Creating Connections at Runtime
 -------------------------------
 
-Using ``config()`` and ``get()`` you can create new connections that are not
+Using ``setConfig()`` and ``get()`` you can create new connections that are not
 defined in your configuration files at runtime::
 
-    ConnectionManager::config('my_connection', $config);
+    ConnectionManager::setConfig('my_connection', $config);
     $conn = ConnectionManager::get('my_connection');
 
 See the :ref:`database-configuration` for more information on the configuration
@@ -309,8 +321,9 @@ the same names for similar data types, CakePHP provides a set of abstracted
 data types for use with the database layer. The types CakePHP supports are:
 
 string
-    Generally backed by ``CHAR`` or ``VARCHAR`` columns. Using the ``fixed`` option
-    will force a CHAR column. In SQL Server, ``NCHAR`` and ``NVARCHAR`` types are used.
+    Maps to ``VARCHAR`` type. In SQL Server the ``NVARCHAR`` types are used.
+char
+    Maps to ``CHAR`` type. In SQL Server the ``NCHAR`` type is used.
 text
     Maps to ``TEXT`` types.
 uuid
@@ -341,21 +354,21 @@ boolean
 binary
     Maps to the ``BLOB`` or ``BYTEA`` type provided by the database.
 date
-    Maps to a timezone naive ``DATE`` column type. The return value of this column
+    Maps to a native ``DATE`` column type. The return value of this column
     type is :php:class:`Cake\\I18n\\Date` which extends the native ``DateTime``
     class.
 datetime
-    Maps to a timezone naive ``DATETIME`` column type. In PostgreSQL, and SQL Server
-    this turns into a ``TIMESTAMP`` type. The default return value of this column
-    type is :php:class:`Cake\\I18n\\Time` which extends the built-in
-    ``DateTime`` class and `Chronos <https://github.com/cakephp/chronos>`_.
+    See :ref:`datetime-type`.
+datetimefractional
+    See :ref:`datetime-type`.
 timestamp
     Maps to the ``TIMESTAMP`` type.
+timestampfractional
+    Maps to the ``TIMESTAMP(N)`` type.
 time
     Maps to a ``TIME`` type in all databases.
 json
-    Maps to a ``JSON`` type if it's available, otherwise it maps to ``TEXT``. The 'json'
-    type was added in 3.3.0
+    Maps to a ``JSON`` type if it's available, otherwise it maps to ``TEXT``.
 
 These types are used in both the schema reflection features that CakePHP
 provides, and schema generation features CakePHP uses when using test fixtures.
@@ -367,14 +380,48 @@ automatically convert input parameters from ``DateTime`` instances into a
 timestamp or formatted datestrings. Likewise, 'binary' columns will accept file
 handles, and generate file handles when reading data.
 
-.. versionchanged:: 3.3.0
-    The ``json`` type was added.
+.. _datetime-type:
 
-.. versionchanged:: 3.5.0
-    The ``smallinteger`` and ``tinyinteger`` types were added.
+DateTime Type
+-------------
 
-.. versionchanged:: 3.6.0
-    The ``binaryuuid`` type was added.
+.. php:class:: DateTimeType
+
+Maps to a native ``DATETIME`` column type. In PostgreSQL and SQL Server
+this turns into a ``TIMESTAMP`` type. The default return value of this column
+type is :php:class:`Cake\\I18n\\FrozenTime` which extends the built-in
+``DateTimeImmutable`` class and `Chronos <https://github.com/cakephp/chronos>`_.
+
+.. php:method:: setTimezone(string|\DateTimeZone|null $timezone)
+
+If your database server's timezone does not match your application's PHP timezone
+then you can use this method to specify your database's timezone. This timezone
+will then used when converting PHP objects to database's datetime string and
+vice versa.
+
+.. php:class:: DateTimeFractionalType
+
+Can be used to map datetime columns that contain microseconds such as
+``DATETIME(6)`` in MySQL. To use this type you need to add it as a mapped type::
+
+    // in confib/bootstrap.php
+    use Cake\Database\TypeFactory;
+    use Cake\Database\Type\DateTimeFractionalType;
+
+    // Overwrite the default datetime type with a more precise one.
+    TypeFactory::map('datetime', DateTimeFractionalType::class);
+
+.. php:class:: DateTimeTimezoneType
+
+Can be used to map datetime columns that contain time zones such as
+``TIMESTAMPTZ`` in PostgreSQL. To use this type you need to add it as a mapped type::
+
+    // in confib/bootstrap.php
+    use Cake\Database\TypeFactory;
+    use Cake\Database\Type\DateTimeTimezoneType;
+
+    // Overwrite the default datetime type with a more precise one.
+    TypeFactory::map('datetime', DateTimeTimezoneType::class);
 
 .. _adding-custom-database-types:
 
@@ -406,7 +453,6 @@ we could make the following type class::
 
     class JsonType extends Type
     {
-
         public function toPHP($value, Driver $driver)
         {
             if ($value === null) {
@@ -435,7 +481,6 @@ we could make the following type class::
             }
             return PDO::PARAM_STR;
         }
-
     }
 
 By default the ``toStatement()`` method will treat values as strings which will
@@ -446,9 +491,6 @@ the type mapping. During our application bootstrap we should do the following::
 
     Type::map('json', 'App\Database\Type\JsonType');
 
-.. versionadded:: 3.3.0
-    The JsonType described in this example was added to the core.
-
 We can then overload the reflected schema data to use our new type, and
 CakePHP's database layer will automatically convert our JSON data when creating
 queries. You can use the custom types you've created by mapping the types in
@@ -458,22 +500,17 @@ your Table's :ref:`_initializeSchema() method <saving-complex-types>`::
 
     class WidgetsTable extends Table
     {
-
         protected function _initializeSchema(TableSchema $schema)
         {
-            $schema->columnType('widget_prefs', 'json');
+            $schema->setColumnType('widget_prefs', 'json');
             return $schema;
         }
-
     }
 
 .. _mapping-custom-datatypes-to-sql-expressions:
 
 Mapping Custom Datatypes to SQL Expressions
 -------------------------------------------
-
-.. versionadded:: 3.3.0
-    Support for mapping custom data types to SQL expressions was added in 3.3.0.
 
 The previous example maps a custom datatype for a 'json' column type which is
 easily represented as a string in a SQL statement. Complex SQL data
@@ -581,9 +618,6 @@ to our table class <saving-complex-types>`.
 
 Enabling Immutable DateTime Objects
 -----------------------------------
-
-.. versionadded:: 3.2
-    Immutable date/time objects were added in 3.2.
 
 Because Date/Time objects are easily mutated in place, CakePHP allows you to
 enable immutable value objects. This is best done in your application's
@@ -798,7 +832,7 @@ the statement::
     $rows = $stmt->fetchAll('assoc');
 
     // Read rows through iteration.
-    foreach ($rows as $row) {
+    foreach ($stmt as $row) {
         // Do work
     }
 
@@ -835,13 +869,13 @@ Query Logging
 
 Query logging can be enabled when configuring your connection by setting the
 ``log`` option to ``true``. You can also toggle query logging at runtime, using
-``logQueries``::
+``enableQueryLogging``::
 
     // Turn query logging on.
-    $conn->logQueries(true);
+    $conn->enableQueryLogging(true);
 
     // Turn query logging off
-    $conn->logQueries(false);
+    $conn->enableQueryLogging(false);
 
 When query logging is enabled, queries will be logged to
 :php:class:`Cake\\Log\\Log` using the 'debug' level, and the 'queriesLog' scope.
@@ -852,14 +886,14 @@ files/syslog can be useful when working with web requests::
     use Cake\Log\Log;
 
     // Console logging
-    Log::config('queries', [
+    Log::setConfig('queries', [
         'className' => 'Console',
         'stream' => 'php://stderr',
         'scopes' => ['queriesLog']
     ]);
 
     // File logging
-    Log::config('queries', [
+    Log::setConfig('queries', [
         'className' => 'File',
         'path' => LOGS,
         'file' => 'queries.log',
@@ -888,7 +922,7 @@ If you are using a legacy schema that requires identifier quoting you can enable
 it using the ``quoteIdentifiers`` setting in your
 :ref:`database-configuration`. You can also enable this feature at runtime::
 
-    $conn->driver()->autoQuoting(true);
+    $conn->getDriver()->enableAutoQuoting();
 
 When enabled, identifier quoting will cause additional query traversal that
 converts all identifiers into ``IdentifierExpression`` objects.
@@ -931,7 +965,7 @@ You can also configure the metadata caching at runtime with the
     $connection->cacheMetadata('orm_metadata');
 
 CakePHP also includes a CLI tool for managing metadata caches. See the
-:doc:`/console-and-shells/schema-cache` chapter for more information.
+:doc:`/console-commands/schema-cache` chapter for more information.
 
 Creating Databases
 ==================

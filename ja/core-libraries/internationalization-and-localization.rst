@@ -70,7 +70,7 @@ PR を送ってください。
                 /de
                     my_plugin.po
 
-翻訳フォルダーは、2文字の言語 ISO コード、または、言語及び話されている国を含む
+翻訳フォルダーは、2文字または3文字の言語 ISO コード、または、言語及び話されている国を含む
 ``fr_FR``, ``es_AR``, ``da_DK`` のような完全なロケールの名称にしてください。
 
 翻訳ファイルの具体例は以下のようになります。
@@ -455,7 +455,7 @@ CakePHP が利用しているものと同じやり方を使い続けることも
 
     I18n::config('default', function ($domain, $locale) {
         $locale = Locale::parseLocale($locale);
-        $language = $locale['language'];
+        $lang = $locale['language'];
         $messages = file_get_contents("http://example.com/translations/$lang.json");
 
         return new Package(

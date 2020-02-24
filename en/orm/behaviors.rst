@@ -61,7 +61,7 @@ To create our sluggable behavior. Put the following into
 Similar to tables, behaviors also have an ``initialize()`` hook where you can
 put your behavior's initialization code, if required::
 
-    public function initialize(array $config)
+    public function initialize(array $config): void
     {
         // Some initialization code here
     }
@@ -76,8 +76,7 @@ friendly URLs::
 
     class ArticlesTable extends Table
     {
-
-        public function initialize(array $config)
+        public function initialize(array $config): void
         {
             $this->addBehavior('Sluggable');
         }
@@ -148,7 +147,7 @@ behavior should now look like::
 
     use ArrayObject;
     use Cake\Datasource\EntityInterface;
-    use Cake\Event\Event;
+    use Cake\Event\EventInterface;
     use Cake\ORM\Behavior;
     use Cake\ORM\Entity;
     use Cake\ORM\Query;
@@ -162,14 +161,14 @@ behavior should now look like::
             'replacement' => '-',
         ];
 
-        public function slug(Entity $entity)
+        public function slug(EntityInterface $entity)
         {
-            $config = $this->config();
+            $config = $this->getConfig();
             $value = $entity->get($config['field']);
             $entity->set($config['slug'], Text::slug($value, $config['replacement']));
         }
 
-        public function beforeSave(Event $event, EntityInterface $entity, ArrayObject $options)
+        public function beforeSave(EventInterface $event, EntityInterface $entity, ArrayObject $options)
         {
             $this->slug($entity);
         }
@@ -183,16 +182,19 @@ The above code shows a few interesting features of behaviors:
 - Behaviors can define a default configuration property. This property is merged
   with the overrides when a behavior is attached to the table.
 
-To prevent the saving from continuing simply stop event propagation in your callback::
+To prevent the save from continuing, simply stop event propagation in your callback::
 
-    public function beforeSave(Event $event, EntityInterface $entity, ArrayObject $options)
+    public function beforeSave(EventInterface $event, EntityInterface $entity, ArrayObject $options)
     {
         if (...) {
             $event->stopPropagation();
+            $event->setResult(false);
             return;
         }
         $this->slug($entity);
     }
+
+Alternatively, you can return false from the callback. This has the same effect as stopping event propagation.
 
 Defining Finders
 ----------------
@@ -261,9 +263,6 @@ interface requires a single method to be implemented::
 The ``TranslateBehavior`` has a non-trivial implementation of this interface
 that you might want to refer to.
 
-.. versionadded:: 3.3.0
-    The ability for behaviors to participate in marshalling was added in 3.3.0
-
 Removing Loaded Behaviors
 =========================
 
@@ -307,14 +306,14 @@ respond to::
 
     class UsersTable extends AppTable
     {
-        public function initialize(array $options)
+        public function initialize(array $options): void
         {
             parent::initialize($options);
 
             // e.g. if our parent calls $this->addBehavior('Timestamp');
             // and we want to add an additional event
             if ($this->behaviors()->has('Timestamp')) {
-                $this->behaviors()->get('Timestamp')->config([
+                $this->behaviors()->get('Timestamp')->setConfig([
                     'events' => [
                         'Users.login' => [
                             'last_login' => 'always'

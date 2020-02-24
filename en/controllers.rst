@@ -66,13 +66,11 @@ is invoked at the end of a Controller's constructor for this kind of use::
 
     class AppController extends Controller
     {
-
-        public function initialize()
+        public function initialize(): void
         {
             // Always enable the CSRF component.
             $this->loadComponent('Csrf');
         }
-
     }
 
 In addition to the ``initialize()`` method, the older ``$components`` property
@@ -126,8 +124,8 @@ in **src/Controller/RecipesController.php** and contain::
         }
     }
 
-The template files for these actions would be **src/Template/Recipes/view.ctp**,
-**src/Template/Recipes/share.ctp**, and **src/Template/Recipes/search.ctp**. The
+The template files for these actions would be **templates/Recipes/view.php**,
+**templates/Recipes/share.php**, and **templates/Recipes/search.php**. The
 conventional view file name is the lowercased and underscored version of the
 action name.
 
@@ -188,6 +186,10 @@ assign a set of information to the view::
 
     $this->set($data);
 
+Keep in mind that view vars are shared among all parts rendered by your view.
+They will be available in all parts of the view: the template, the layout and
+all elements inside the former two.
+
 Setting View Options
 --------------------
 
@@ -197,15 +199,12 @@ theme that will be used when rendering the view, you can use the
 properties of the view before it is created::
 
     $this->viewBuilder()
-        ->helpers(['MyCustom'])
-        ->theme('Modern')
-        ->className('Modern.Admin');
+        ->setHelpers(['MyCustom'])
+        ->setTheme('Modern')
+        ->setClassName('Modern.Admin');
 
 The above shows how you can load custom helpers, set the theme and use a custom
 view class.
-
-.. versionadded:: 3.1
-    ViewBuilder was added in 3.1
 
 Rendering a View
 ----------------
@@ -219,7 +218,7 @@ you've submitted using the ``Controller::set()`` method), places the view inside
 
 The default view file used by render is determined by convention.
 If the ``search()`` action of the RecipesController is requested,
-the view file in **src/Template/Recipes/search.ctp** will be rendered::
+the view file in **templates/Recipes/search.php** will be rendered::
 
     namespace App\Controller;
 
@@ -228,7 +227,7 @@ the view file in **src/Template/Recipes/search.ctp** will be rendered::
     // ...
         public function search()
         {
-            // Render the view in src/Template/Recipes/search.ctp
+            // Render the view in templates/Recipes/search.php
             $this->render();
         }
     // ...
@@ -240,11 +239,11 @@ an alternate view file by specifying a view file name as first argument of
 ``Controller::render()`` method.
 
 If ``$view`` starts with '/', it is assumed to be a view or
-element file relative to the **src/Template** folder. This allows
+element file relative to the **templates** folder. This allows
 direct rendering of elements, very useful in AJAX calls::
 
-    // Render the element in src/Template/Element/ajaxreturn.ctp
-    $this->render('/Element/ajaxreturn');
+    // Render the element in templates/element/ajaxreturn.php
+    $this->render('/element/ajaxreturn');
 
 The second parameter ``$layout`` of ``Controller::render()`` allows you to specify the layout
 with which the view is rendered.
@@ -266,8 +265,8 @@ have called ``Controller::render()``, CakePHP will not try to re-render the view
         }
     }
 
-This would render **src/Template/Posts/custom_file.ctp** instead of
-**src/Template/Posts/my_action.ctp**.
+This would render **templates/Posts/custom_file.php** instead of
+**templates/Posts/my_action.php**.
 
 You can also render views inside plugins using the following syntax:
 ``$this->render('PluginName.PluginController/custom_file')``.
@@ -283,58 +282,24 @@ For example::
         }
     }
 
-This would render **plugins/Users/src/Template/UserDetails/custom_file.ctp**
+This would render **plugins/Users/templates/UserDetails/custom_file.php**
 
 Redirecting to Other Pages
 ==========================
 
 .. php:method:: redirect(string|array $url, integer $status)
 
-The flow control method you'll use most often is ``Controller::redirect()``.
-This method takes its first parameter in the form of a
-CakePHP-relative URL. When a user has successfully placed an order,
-you might wish to redirect him to a receipt screen. ::
+The ``redirect()`` method adds a ``Location`` header and sets the status code of
+a response and returns it. You should return the response created by
+``redirect()`` to have CakePHP send the redirect instead of completing the
+controller action and rendering a view.
 
-    public function place_order()
-    {
-        // Logic for finalizing order goes here
-        if ($success) {
-            return $this->redirect(
-                ['controller' => 'Orders', 'action' => 'thanks']
-            );
-        }
-        return $this->redirect(
-            ['controller' => 'Orders', 'action' => 'confirm']
-        );
-    }
-
-The method will return the response instance with appropriate headers set.
-You should return the response instance from your action to prevent
-view rendering and let the dispatcher handle actual redirection.
-
-You can also use a relative or absolute URL as the $url argument::
-
-    return $this->redirect('/orders/thanks');
-    return $this->redirect('http://www.example.com');
-
-You can also pass data to the action::
-
-    return $this->redirect(['action' => 'edit', $id]);
-
-The second parameter of ``Controller::redirect()`` allows you to define an HTTP
-status code to accompany the redirect. You may want to use 301
-(moved permanently) or 303 (see other), depending on the nature of
-the redirect.
-
-If you need to redirect to the referer page you can use::
-
-    return $this->redirect($this->referer());
-
-An example using query strings and hash would look like::
+You can redirect using :term:`routing array` values::
 
     return $this->redirect([
         'controller' => 'Orders',
         'action' => 'confirm',
+        $order->id,
         '?' => [
             'product' => 'pizza',
             'quantity' => 5
@@ -342,18 +307,35 @@ An example using query strings and hash would look like::
         '#' => 'top'
     ]);
 
-The generated URL would be::
+Or using a relative or absolute URL::
 
-    http://www.example.com/orders/confirm?product=pizza&quantity=5#top
+    return $this->redirect('/orders/confirm');
+    return $this->redirect('http://www.example.com');
 
-Redirecting to Another Action on the Same Controller
-----------------------------------------------------
+Or to the referer page::
+
+    return $this->redirect($this->referer());
+
+By using the second parameter you can define a status code for your redirect::
+
+    // Do a 301 (moved permanently)
+    return $this->redirect('/order/confirm', 301);
+
+    // Do a 303 (see other)
+    return $this->redirect('/order/confirm', 303);
+
+See the :ref:`redirect-component-events` section for how to redirect out of
+a life-cycle handler.
+
+Forwarding to an Action on the Same Controller
+----------------------------------------------
 
 .. php:method:: setAction($action, $args...)
 
 If you need to forward the current action to a different action on the *same*
-controller, you can use ``Controller::setAction()`` to update the request object, modify the
-view template that will be rendered and forward execution to the named action::
+controller, you can use ``Controller::setAction()`` to update the request
+object, modify the view template that will be rendered and forward execution to
+the named action::
 
     // From a delete action, you can render the updated
     // list page.
@@ -425,7 +407,7 @@ Configuring Components to Load
 In your Controller's ``initialize()`` method you can define any components you
 want loaded, and any configuration data for them::
 
-    public function initialize()
+    public function initialize(): void
     {
         parent::initialize();
         $this->loadComponent('Csrf');
@@ -439,27 +421,6 @@ components. Configured components and their dependencies will be created by
 CakePHP for you. Read the :ref:`configuring-components` section for more
 information. As mentioned earlier the ``$components`` property will be merged
 with the property defined in each of your controller's parent classes.
-
-Configuring Helpers to Load
-===========================
-
-.. php:attr:: helpers
-
-Let's look at how to tell a CakePHP Controller that you plan to use
-additional MVC classes::
-
-    class RecipesController extends AppController
-    {
-        public $helpers = ['Form'];
-    }
-
-Each of these variables are merged with their inherited values,
-therefore it is not necessary (for example) to redeclare the
-``FormHelper``, or anything that is declared in your ``AppController``.
-
-.. deprecated:: 3.0
-    Loading Helpers from the controller is provided for backwards compatibility
-    reasons. You should see :ref:`configuring-helpers` for how to load helpers.
 
 .. _controller-life-cycle:
 
@@ -484,7 +445,7 @@ Controller Callback Methods
 By default the following callback methods are connected to related events if the
 methods are implemented by your controllers
 
-.. php:method:: beforeFilter(Event $event)
+.. php:method:: beforeFilter(EventInterface $event)
 
     Called during the ``Controller.initialize`` event which occurs before every
     action in the controller.  It's a handy place to check for an active session
@@ -498,7 +459,7 @@ methods are implemented by your controllers
     listeners of the same event from being called. You must explicitly
     :ref:`stop the event <stopping-events>`.
 
-.. php:method:: beforeRender(Event $event)
+.. php:method:: beforeRender(EventInterface $event)
 
     Called during the ``Controller.beforeRender`` event which occurs after
     controller action logic, but before the view is rendered. This callback is
@@ -506,7 +467,7 @@ methods are implemented by your controllers
     :php:meth:`~Cake\\Controller\\Controller::render()` manually before the end
     of a given action.
 
-.. php:method:: afterFilter(Event $event)
+.. php:method:: afterFilter(EventInterface $event)
 
     Called during the ``Controller.shutdown`` event which is triggered after
     every controller action, and after rendering is complete. This is the last
@@ -518,8 +479,8 @@ also provide a similar set of callbacks.
 Remember to call ``AppController``'s callbacks within child controller callbacks
 for best results::
 
-    //use Cake\Event\Event;
-    public function beforeFilter(Event $event)
+    //use Cake\Event\EventInterface;
+    public function beforeFilter(EventInterface $event)
     {
         parent::beforeFilter($event);
     }

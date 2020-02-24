@@ -21,8 +21,6 @@ helpers included in CakePHP, check out the chapter for each helper:
     /views/helpers/html
     /views/helpers/number
     /views/helpers/paginator
-    /views/helpers/rss
-    /views/helpers/session
     /views/helpers/text
     /views/helpers/time
     /views/helpers/url
@@ -38,7 +36,7 @@ helpers::
 
     class AppView extends View
     {
-        public function initialize()
+        public function initialize(): void
         {
             parent::initialize();
             $this->loadHelper('Html');
@@ -69,7 +67,7 @@ You can use the current action name to conditionally load helpers::
 
     class AppView extends View
     {
-        public function initialize()
+        public function initialize(): void
         {
             parent::initialize();
             if ($this->request->getParam('action') === 'index') {
@@ -82,10 +80,10 @@ You can also use your controller's ``beforeRender`` method to load helpers::
 
     class ArticlesController extends AppController
     {
-        public function beforeRender(Event $event)
+        public function beforeRender(EventInterface $event)
         {
             parent::beforeRender($event);
-            $this->viewBuilder()->helpers(['MyHelper']);
+            $this->viewBuilder()->setHelpers(['MyHelper']);
         }
     }
 
@@ -102,24 +100,10 @@ attribute values or modify the behavior of a helper::
 
     class AwesomeHelper extends Helper
     {
-
-        // initialize() hook is available since 3.2. For prior versions you can
-        // override the constructor if required.
-        public function initialize(array $config)
+        public function initialize(array $config): void
         {
             debug($config);
         }
-    }
-
-Options can be specified when declaring helpers in controller as shown::
-
-    namespace App\Controller;
-
-    use App\Controller\AppController;
-
-    class AwesomeController extends AppController
-    {
-        public $helpers = ['Awesome' => ['option1' => 'value1']];
     }
 
 By default all configuration options will be merged with the ``$_defaultConfig``
@@ -133,7 +117,6 @@ your helper requires. For example::
 
     class AwesomeHelper extends Helper
     {
-
         use StringTemplateTrait;
 
         protected $_defaultConfig = [
@@ -146,10 +129,10 @@ your helper requires. For example::
 
 Any configuration provided to your helper's constructor will be merged with the
 default values during construction and the merged data will be set to
-``_config``. You can use the ``config()`` method to read runtime configuration::
+``_config``. You can use the ``getConfig()`` method to read runtime configuration::
 
     // Read the errorClass config option.
-    $class = $this->Awesome->config('errorClass');
+    $class = $this->Awesome->getConfig('errorClass');
 
 Using helper configuration allows you to declaratively configure your helpers and
 keep configuration logic out of your controller actions. If you have
@@ -158,7 +141,7 @@ you can set those in your controller's beforeRender callback::
 
     class PostsController extends AppController
     {
-        public function beforeRender(Event $event)
+        public function beforeRender(EventInterface $event)
         {
             parent::beforeRender($event);
             $builder = $this->viewBuilder();
@@ -181,7 +164,7 @@ implementation::
     // src/View/AppView.php
     class AppView extends View
     {
-        public function initialize()
+        public function initialize(): void
         {
             $this->loadHelper('Html', [
                 'className' => 'MyHtml'
@@ -305,7 +288,7 @@ load it in your views::
 
     class AppView extends View
     {
-        public function initialize()
+        public function initialize(): void
         {
             parent::initialize();
             $this->loadHelper('Link');
@@ -331,7 +314,6 @@ If you would like to access a View variable inside a helper, you can use
 
     class AwesomeHelper extends Helper
     {
-
         public $helpers = ['Html'];
 
         public function someMethod()
@@ -382,34 +364,34 @@ subscribe your helper to the relevant event. Unlike previous versions of CakePHP
 you should *not* call ``parent`` in your callbacks, as the base Helper class
 does not implement any of the callback methods.
 
-.. php:method:: beforeRenderFile(Event $event, $viewFile)
+.. php:method:: beforeRenderFile(EventInterface $event, $viewFile)
 
     Is called before each view file is rendered. This includes elements,
     views, parent views and layouts.
 
-.. php:method:: afterRenderFile(Event $event, $viewFile, $content)
+.. php:method:: afterRenderFile(EventInterface $event, $viewFile, $content)
 
     Is called after each view file is rendered. This includes elements, views,
     parent views and layouts. A callback can modify and return ``$content`` to
     change how the rendered content will be displayed in the browser.
 
-.. php:method:: beforeRender(Event $event, $viewFile)
+.. php:method:: beforeRender(EventInterface $event, $viewFile)
 
     The beforeRender method is called after the controller's beforeRender method
     but before the controller renders view and layout. Receives the file being
     rendered as an argument.
 
-.. php:method:: afterRender(Event $event, $viewFile)
+.. php:method:: afterRender(EventInterface $event, $viewFile)
 
     Is called after the view has been rendered but before layout rendering has
     started.
 
-.. php:method:: beforeLayout(Event $event, $layoutFile)
+.. php:method:: beforeLayout(EventInterface $event, $layoutFile)
 
     Is called before layout rendering starts. Receives the layout filename as an
     argument.
 
-.. php:method:: afterLayout(Event $event, $layoutFile)
+.. php:method:: afterLayout(EventInterface $event, $layoutFile)
 
     Is called after layout rendering is complete. Receives the layout filename
     as an argument.

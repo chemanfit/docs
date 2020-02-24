@@ -5,12 +5,9 @@ Http Client
 
 .. php:class:: Client(mixed $config = [])
 
-CakePHP includes a basic but powerful HTTP client which can be used for
+CakePHP includes a PSR-18 compliant HTTP client which can be used for
 making requests. It is a great way to communicate with webservices, and
 remote APIs.
-
-.. versionchanged:: 3.3.0
-    Prior to 3.3.0 you should use ``Cake\Network\Http\Client``.
 
 Doing Requests
 ==============
@@ -52,6 +49,19 @@ Doing POST and PUT requests is equally simple::
     $http->head(...);
     $http->patch(...);
 
+If you have created a PSR-7 request object you can send it using
+``sendRequest()``::
+
+    use Cake\Http\Client;
+    use Cake\Http\Client\Request as ClientRequest;
+
+    $request = new ClientRequest(
+        'http://example.com/search',
+        ClientRequest::METHOD_GET
+    );
+    $client = new Client();
+    $response = $client->sendRequest($request);
+
 Creating Multipart Requests with Files
 ======================================
 
@@ -63,26 +73,6 @@ You can include files in request bodies by including a filehandle in the array::
     ]);
 
 The filehandle will be read until its end; it will not be rewound before being read.
-
-.. warning::
-
-    For compatibility reasons, strings beginning with ``@`` will be evaluated
-    as local or remote file paths.
-
-This functionality is deprecated as of CakePHP 3.0.5
-and will be removed in a future version. Until that happens, user data being passed
-to the Http Client must be sanitized as follows::
-
-    $response = $http->post('http://example.com/api', [
-        'search' => ltrim($this->request->getData('search'), '@'),
-    ]);
-
-If it is necessary to preserve leading ``@`` characters in query strings, you can pass
-a pre-encoded query string from ``http_build_query()``::
-
-    $response = $http->post('http://example.com/api', http_build_query([
-        'search' => $this->request->getData('search'),
-    ]));
 
 Building Multipart Request Bodies by Hand
 -----------------------------------------
@@ -347,9 +337,6 @@ method::
     ]);
     $http->addCookie(new Cookie('session', 'abc123'));
 
-.. versionadded:: 3.5.0
-    ``addCookie()`` was added in 3.5.0
-
 .. _httpclient-response-objects:
 
 Response Objects
@@ -361,21 +348,13 @@ Response Objects
 
 Response objects have a number of methods for inspecting the response data.
 
-.. versionchanged:: 3.3.0
-    As of 3.3.0 ``Cake\Http\Client\Response`` implements the `PSR-7
-    ResponseInterface
-    <http://www.php-fig.org/psr/psr-7/#3-3-psr-http-message-responseinterface>`__.
-
 Reading Response Bodies
 -----------------------
 
 You read the entire response body as a string::
 
     // Read the entire response as a string.
-    $response->body();
-
-    // As a property
-    $response->body;
+    $response->getStringBody();
 
 You can also access the stream object for the response and use its methods::
 
@@ -399,12 +378,12 @@ XML data is decoded into a ``SimpleXMLElement`` tree::
     // Get some XML
     $http = new Client();
     $response = $http->get('http://example.com/test.xml');
-    $xml = $response->xml;
+    $xml = $response->getXml();
 
     // Get some JSON
     $http = new Client();
     $response = $http->get('http://example.com/test.json');
-    $json = $response->json;
+    $json = $response->getJson();
 
 The decoded response data is stored in the response object, so accessing it
 multiple times has no additional cost.
@@ -427,9 +406,6 @@ treated as case-insensitive values when accessing them through methods::
     // Get the response encoding
     $response->getEncoding();
 
-    // Get an array of key=>value for all headers
-    $response->headers;
-
 Accessing Cookie Data
 ---------------------
 
@@ -446,9 +422,6 @@ data you need about the cookies::
     // includes value, expires, path, httponly, secure keys.
     $response->getCookieData('session_id');
 
-    // Access the complete data for all cookies.
-    $response->cookies;
-
 Checking the Status Code
 ------------------------
 
@@ -463,8 +436,16 @@ Response objects provide a few methods for checking status codes::
     // Get the status code
     $response->getStatusCode();
 
-    // __get() helper
-    $response->code;
+Changing Transport Adapters
+===========================
+
+By default ``Http\Client`` will prefer using a ``curl`` based transport adapter.
+If the curl extension is not available a stream based adapter will be used
+instead. You can force select a transport adapter using a constructor option::
+
+    use Cake\Http\Client\Adapter\Stream;
+
+    $client = new Client(['adapter' => Stream::class]);
 
 .. meta::
     :title lang=en: HttpClient

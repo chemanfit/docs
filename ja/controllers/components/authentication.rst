@@ -1,5 +1,5 @@
-認証
-####
+AuthComponent
+##############
 
 .. php:class:: AuthComponent(ComponentCollection $collection, array $config = [])
 
@@ -8,6 +8,12 @@
 プラガブルな方法を提供します。AuthComponent により、認証オブジェクトと、ユーザーの権限を
 識別・判定する柔軟な仕組みを作るための権限判定オブジェクトを組み合わせることができるように
 なります。
+
+.. deprecated:: 4.0.0
+    AuthComponent は 4.0.0 では非推奨になり、
+    `authorization <https://book.cakephp.org/authorization/>`__
+    と `authentication <https://book.cakephp.org/authentication/>`__ プラグインに
+    置き換えられます。
 
 .. _authentication-objects:
 

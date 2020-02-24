@@ -135,7 +135,7 @@ correspondant à son action. Par exemple, le fichier de vue pour l'action
 
 La couche vue de CakePHP peut être constituée d'un certain nombre de parties
 différentes. Chaque partie a différents usages qui seront présentés dans ce
-chapitre :
+chapitre:
 
 - **templates**: Les templates sont la partie de la page qui est unique pour l'action
   lancée. Elles sont la substance de la réponse de votre application.
@@ -698,17 +698,6 @@ Pour les elements dans le sous-dossier d'un plugin
 (e.g., **plugins/Contacts/sidebar/helpbox.ctp**), utilisez ce qui suit::
 
     echo $this->element('Contacts.sidebar/helpbox');
-
-Elements Requêtés à partir de App
----------------------------------
-
-Si vous êtes dans un fichier de template d'un plugin et que vous souhaitez
-rendre un element résidant dans votre application principale plutôt que dans
-ce plugin ou un element d'un autre plugin, utilisez ce qui suit::
-
-    echo $this->element('some_global_element', [], ['plugin' => false]);
-    // ou...
-    echo $this->element('some_global_element', ['localVar' => $someData], ['plugin' => false]);
 
 Préfix de Routing et Elements
 -----------------------------

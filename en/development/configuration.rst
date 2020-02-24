@@ -7,7 +7,7 @@ to configure a few things like your database credentials.
 Additionally, there are optional configuration options that allow you to swap
 out default values & implementations with ones tailored to your application.
 
-.. index:: app.php, app.php.default
+.. index:: app.php, app_local.example.php
 
 .. index:: configuration
 
@@ -18,8 +18,16 @@ Configuration is generally stored in either PHP or INI files, and loaded during
 the application bootstrap. CakePHP comes with one configuration file by default,
 but if required you can add additional configuration files and load them in
 your application's bootstrap code. :php:class:`Cake\\Core\\Configure` is used
-for global configuration, and classes like ``Cache`` provide ``config()``
+for global configuration, and classes like ``Cache`` provide ``setConfig()``
 methods to make configuration simple and transparent.
+
+The application skeleton features a **config/app.php** file which should contain
+configuration that doesn't vary across the various environments your application
+is deployed in. The **config/app_local.php** file should contain the
+configuration data that varies between environments and should be managed by
+configuration management, or your deployment tooling. Both of these files reference environment variables
+through the ``env()`` function that enables configuration values to set though
+the server environment.
 
 Loading Additional Configuration Files
 --------------------------------------
@@ -31,14 +39,45 @@ configuration into multiple files. After creating each of the files in your
     use Cake\Core\Configure;
     use Cake\Core\Configure\Engine\PhpConfig;
 
-    Configure::config('default', new PhpConfig());
+    Configure::setConfig('default', new PhpConfig());
     Configure::load('app', 'default', false);
     Configure::load('other_config', 'default');
 
-You can also use additional configuration files to provide environment specific
-overrides. Each file loaded after **app.php** can redefine previously declared
-values allowing you to customize configuration for development or staging
+.. _environment-variables:
+
+Environment Variables
+=====================
+
+Many modern cloud providers, like Heroku, let you define environment
+variables for configuration data. You can configure your CakePHP through
+environment variables in the `12factor app style <http://12factor.net/>`_.
+Environment variables allow your application to require less state making your
+application easier to manage when it is deployed across a number of
 environments.
+
+As you can see in your **app.php**, the ``env()`` function is used to read
+configuration from the environment, and build the application configuration.
+CakePHP uses :term:`DSN` strings for databases, logs, email transports and cache
+configurations allowing you to easily vary these libraries in each environment.
+
+For local development, CakePHP leverages `dotenv
+<https://github.com/josegonzalez/php-dotenv>`_ to allow easy local development using
+environment variables. You will see a ``config/.env.example`` in your
+application. By copying this file into ``config/.env`` and customizing the
+values you can configure your application.
+
+You should avoid committing the ``config/.env`` file to your repository and
+instead use the ``config/.env.example`` as a template with placeholder values so
+everyone on your team knows what environment variables are in use and what
+should go in each one.
+
+Once your environment variables have been set, you can use ``env()`` to read
+data from the environment::
+
+    $debug = env('APP_DEBUG', false);
+
+The second value passed to the env function is the default value. This value
+will be used if no environment variable exists for the given key.
 
 General Configuration
 ---------------------
@@ -81,7 +120,7 @@ App.wwwRoot
 App.fullBaseUrl
     The fully qualified domain name (including protocol) to your application's
     root. This is used when generating absolute URLs. By default this value
-    is generated using the $_SERVER environment. However, you should define it
+    is generated using the ``$_SERVER`` environment. However, you should define it
     manually to optimize performance or if you are concerned about people
     manipulating the ``Host`` header.
     In a CLI context (from shells) the `fullBaseUrl` cannot be read from $_SERVER,
@@ -100,6 +139,11 @@ App.paths
     Configure paths for non class based resources. Supports the
     ``plugins``, ``templates``, ``locales`` subkeys, which allow the definition
     of paths for plugins, view templates and locale files respectively.
+App.uploadedFilesAsObjects
+    Defines whether uploaded files are being represented as objects (``true``),
+    or arrays (``false``). This option is being treated as enabled by default.
+    See the :ref:`File Uploads section <request-file-uploads>` in the Request &
+    Response Objects chapter for more information.
 Security.salt
     A random string used in hashing. This value is also used as the
     HMAC salt when doing symetric encryption.
@@ -111,10 +155,31 @@ Asset.timestamp
     - (bool) ``false`` - Doesn't do anything (default)
     - (bool) ``true`` - Appends the timestamp when debug is ``true``
     - (string) 'force' - Always appends the timestamp.
+Asset.cacheTime
+    Sets the asset cache time. This determines the http header ``Cache-Control``'s
+    ``max-age``, and the http header's ``Expire``'s time for assets.
+    This can take anything that you version of php's `strtotime function
+    <http://php.net/manual/en/function.strtotime.php>`_ can take.
+    The default is ``+1 day``.
 
-    .. versionchanged:: 3.6.0
-        As of 3.6.0, you can override this global setting when linking assets
-        using the ``timestamp`` option.
+Using a CDN
+-----------
+
+To use a CDN for loading your static assets, change ``App.imageBaseUrl``,
+``App.cssBaseUrl``, ``App.jsBaseUrl`` to point the CDN URI, for example:
+``https://mycdn.example.com/`` (note the trailing ``/``).
+
+All images, scripts and styles loaded via HtmlHelper will prepend the absolute
+CDN path, matching the same relative path used in the application. Please note
+there is a specific use case when using plugin based assets: plugins will not
+use the plugin's prefix when absolute ``...BaseUrl`` URI is used, for example By
+default:
+
+* ``$this->Helper->assetUrl('TestPlugin.logo.png')`` resolves to ``test_plugin/logo.png``
+
+If you set ``App.imageBaseUrl`` to ``https://mycdn.example.com/``:
+
+* ``$this->Helper->assetUrl('TestPlugin.logo.png')`` resolves to ``https://mycdn.example.com/logo.png``.
 
 Database Configuration
 ----------------------
@@ -201,11 +266,11 @@ paths for these resources. In your **config/app.php** you can set these variable
                     '/path/to/other/plugins/'
                 ],
                 'templates' => [
-                    APP . 'Template' . DS,
-                    APP . 'Template2' . DS
+                    ROOT . DS . 'templates' . DS,
+                    ROOT . DS . 'templates2' . DS
                 ],
                 'locales' => [
-                    APP . 'Locale' . DS
+                    ROOT . DS . 'resources' . DS . 'locales' . DS
                 ]
             ]
         ]
@@ -217,45 +282,6 @@ Inflection Configuration
 ========================
 
 See the :ref:`inflection-configuration` docs for more information.
-
-.. _environment-variables:
-
-Environment Variables
-=====================
-
-Many modern cloud providers, like Heroku, let you define environment
-variables for configuration data. You can configure your CakePHP through
-environment variables in the `12factor app style <http://12factor.net/>`_.
-Environment variables allow your application to require less state making your
-application easier to manage when it is deployed across a number of
-environments.
-
-As you can see in your **app.php**, the ``env()`` function is used to read
-configuration from the environment, and build the application configuration.
-CakePHP uses :term:`DSN` strings for databases, logs, email transports and cache
-configurations allowing you to easily vary these libraries in each environment.
-
-For local development, CakePHP leverages `dotenv
-<https://github.com/josegonzalez/php-dotenv>`_ to allow easy local development using
-environment variables. You will see a ``config/.env.default`` in your
-application. By copying this file into ``config/.env`` and customizing the
-values you can configure your application.
-
-You should avoid committing the ``config/.env`` file to your repository and
-instead use the ``config/.env.default`` as a template with placeholder values so
-everyone on your team knows what environment variables are in use and what
-should go in each one.
-
-Once your environment variables have been set, you can use ``env()`` to read
-data from the environment::
-
-    $debug = env('APP_DEBUG', false);
-
-The second value passed to the env function is the default value. This value
-will be used if no environment variable exists for the given key.
-
-.. versionchanged:: 3.5.0
-    dotenv library support was added to the application skeleton.
 
 Configure Class
 ===============
@@ -323,9 +349,6 @@ back::
 
 If ``$key`` is left null, all values in Configure will be returned.
 
-.. versionchanged:: 3.5.0
-    The ``$default`` parameter was added in 3.5.0
-
 .. php:staticmethod:: readOrFail($key)
 
 Reads configuration data just like :php:meth:`Cake\\Core\\Configure::read`
@@ -339,9 +362,6 @@ exist, a :php:class:`RuntimeException` will be thrown::
 
     // Yields:
     ['name' => 'Pizza, Inc.', 'slogan' => 'Pizza for your body and soul'];
-
-.. versionadded:: 3.1.7
-    ``Configure::readOrFail()`` was added in 3.1.7
 
 Checking to see if Configuration Data is Defined
 ------------------------------------------------
@@ -383,13 +403,10 @@ exist, a :php:class:`RuntimeException` will be thrown::
     // Yields:
     ['name' => 'Pizza, Inc.', 'slogan' => 'Pizza for your body and soul'];
 
-.. versionadded:: 3.6.0
-``Configure::readOrFail()`` was added in 3.6.0
-
 Reading and writing configuration files
 =======================================
 
-.. php:staticmethod:: config($name, $engine)
+.. php:staticmethod:: setConfig($name, $engine)
 
 CakePHP comes with two built-in configuration file engines.
 :php:class:`Cake\\Core\\Configure\\Engine\\PhpConfig` is able to read PHP config
@@ -514,57 +531,6 @@ The built in configuration engines are:
 
 By default your application will use ``PhpConfig``.
 
-Bootstrapping CakePHP
-=====================
-
-If you have any additional configuration needs, you should add them to your
-application's **config/bootstrap.php** file. This file is included before each
-request, and CLI command.
-
-This file is ideal for a number of common bootstrapping tasks:
-
-- Defining convenience functions.
-- Declaring constants.
-- Defining cache configuration.
-- Defining logging configuration.
-- Loading custom inflections.
-- Loading configuration files.
-
-It might be tempting to place formatting functions there in order to use them in
-your controllers. As you'll see in the :doc:`/controllers` and :doc:`/views`
-sections there are better ways you add custom logic to your application.
-
-.. _application-bootstrap:
-
-Application::bootstrap()
-------------------------
-
-In addition to the **config/bootstrap.php** file which should be used to
-configure low-level concerns of your application, you can also use the
-``Application::bootstrap()`` hook method to load/initialize plugins, and attach
-global event listeners::
-
-    // in src/Application.php
-    namespace App;
-
-    use Cake\Core\Plugin;
-    use Cake\Http\BaseApplication;
-
-    class Application extends BaseApplication
-    {
-        public function bootstrap()
-        {
-            // Call the parent to `require_once` config/bootstrap.php
-            parent::bootstrap();
-
-            Plugin::load('MyPlugin', ['bootstrap' => true, 'routes' => true]);
-        }
-    }
-
-Loading plugins/events in ``Application::bootstrap()`` makes
-:ref:`integration-testing` easier as events and routes will be re-processed on
-each test method.
-
 Disabling Generic Tables
 ========================
 
@@ -580,14 +546,13 @@ class like so::
 
     // In your bootstrap.php
     use Cake\Event\EventManager;
-    // Prior to 3.6 use Cake\Network\Exception\InteralErrorException
     use Cake\Http\Exception\InternalErrorException;
 
     $isCakeBakeShellRunning = (PHP_SAPI === 'cli' && isset($argv[1]) && $argv[1] === 'bake');
     if (!$isCakeBakeShellRunning) {
         EventManager::instance()->on('Model.initialize', function($event) {
             $subject = $event->getSubject();
-            if (get_class($subject === 'Cake\ORM\Table') {
+            if (get_class($subject) === 'Cake\ORM\Table') {
                 $msg = sprintf(
                     'Missing table class or incorrect alias when registering table class for database table %s.',
                     $subject->getTable());

@@ -142,7 +142,7 @@ Un exemple d'information sur la configuration ressemblera à ceci::
             'persistent' => false,
             'host' => 'localhost',
             'username' => 'my_app',
-            'password' => 'sekret',
+            'password' => 'secret',
             'database' => 'my_app',
             'encoding' => 'utf8',
             'timezone' => 'UTC',
@@ -165,7 +165,7 @@ serait::
         'persistent' => false,
         'host' => 'localhost',
         'username' => 'my_app',
-        'password' => 'sekret',
+        'password' => 'secret',
         'database' => 'my_app',
         'encoding' => 'utf8',
         'timezone' => 'UTC',
@@ -177,7 +177,7 @@ Les options de configuration peuvent également être fournies en tant que chain
 d'environnement ou des fournisseurs :term:`PaaS`::
 
     ConnectionManager::config('default', [
-        'url' => 'mysql://my_app:sekret@localhost/my_app?encoding=utf8&timezone=UTC&cacheMetadata=true',
+        'url' => 'mysql://my_app:secret@localhost/my_app?encoding=utf8&timezone=UTC&cacheMetadata=true',
     ]);
 
 Lorsque vous utilisez une chaine DSN, vous pouvez définir des paramètres/options
@@ -421,10 +421,10 @@ fournis CakePHP, vous pouvez ajouter des nouveaux types supplémentaires
 au système de type de CakePHP. Ces classes de type s'attendent à implémenter
 les méthodes suivantes:
 
-* toPHP
-* toDatabase
-* toStatement
-* marshal
+* ``toPHP``: Formate la valeur de la base de données pour être utilisée en PHP.
+* ``toDatabase``: Formate la valeur PHP pour son enregistrement dans la base de données.
+* ``toStatement``: Convertit la valeur en Statement de base de données.
+* ``marshal``: Convertit des données plates en objet PHP.
 
 Une façon facile de remplir l'interface basique est d'étendre
 :php:class:`Cake\\Database\\Type`. Par exemple, si vous souhaitez ajouter un
@@ -600,7 +600,7 @@ faire correspondre les données dans cet objet et les expressions SQL::
         }
     }
 
-La classe ci-dessus fait quelques éléments intéressants :
+La classe ci-dessus fait quelques éléments intéressants:
 
 * La méthode ``toPHP`` se charge du parsing des résulats de la requête SQL dans un objet 'value'.
 * La méthode ``marshal`` se charge de convertir, comme celles données dans la requête, dans notre objet 'value'.
@@ -940,7 +940,7 @@ identifiers, vous pouvez l'activer en utilisant le paramètre
 ``quoteIdentifiers`` dans votre :ref:`database-configuration`. Vous pouvez
 aussi activer cette fonctionnalité à la volée::
 
-    $conn->driver()->autoQuoting(true);
+    $conn->getDriver()->enableAutoQuoting();
 
 Quand elle est activée, l'identifier quoting va entrainer des requêtes
 supplémentaires traversales qui convertissent tous les identifiers en objets

@@ -24,7 +24,7 @@ requête de données utilise. Par défaut la requête est assignée à
 ``$this->request``, et est disponible dans les Controllers, Cells, Vues et
 Helpers. Vous pouvez aussi y accéder dans les Components en utilisant la
 référence du controller. Certaines des tâches incluses que ``ServerRequest``
-permet sont les suivantes :
+permet sont les suivantes:
 
 * Transformer les tableaux GET, POST, et FILES en structures de données avec
   lesquelles vous êtes familiers.
@@ -279,7 +279,7 @@ Quelques exemples seraient::
 et :php:meth:`Cake\\Http\\ServerRequest::host()` qui facilitent la vie des
 applications avec sous-domaines.
 
-Il y a plusieurs détecteurs intégrés que vous pouvez utiliser :
+Il y a plusieurs détecteurs intégrés que vous pouvez utiliser:
 
 * ``is('get')`` Vérifie si la requête courante est un GET.
 * ``is('put')`` Vérifie si la requête courante est un PUT.
@@ -292,8 +292,6 @@ Il y a plusieurs détecteurs intégrés que vous pouvez utiliser :
   X-Requested-With = XMLHttpRequest.
 * ``is('ssl')`` Vérifie si la requête courante est via SSL.
 * ``is('flash')`` Vérifie si la requête courante a un User-Agent de Flash.
-* ``is('requested')`` Vérifie si la requête a un paramètre de requête
-  'requested' avec la valeur 1.
 * ``is('json')`` Vérifie si la requête a l'extension 'json' ajoutée et si elle
   accepte le mimetype 'application/json'.
 * ``is('xml')`` Vérifie si la requête a l'extension 'xml' ajoutée et si elle
@@ -367,7 +365,7 @@ l'en-tête ``Allow`` nécessaire avec les méthodes passées::
         ...
     }
 
-Lire les En-têtes HTTP
+Lire les en-têtes HTTP
 ----------------------
 
 Ces méthodes vous permettent d'accéder à n'importe quel en-tête ``HTTP_*`` qui
@@ -377,7 +375,7 @@ ont été utilisés dans la requête. Par exemple::
     $userAgent = $this->request->getHeaderLine('User-Agent');
 
     // Récupère un tableau de toutes les valeurs
-    $acceptHeader = $this->request->getHeader('Accept');
+    $acceptHeader = $this->request->getHeaders();
 
     // Vérifie l'existence d'un header
     $hasAcceptHeader = $this->request->hasHeader('Accept');
@@ -389,7 +387,7 @@ Du fait que certaines installations d'Apache ne rendent pas le header
 ``Authorization`` accessible, CakePHP le rend disponible via des méthodes
 spécifiques.
 
-.. php:method:: referer($local = false)
+.. php:method:: referer($local = true)
 
 Retourne l'adresse référente de la requête.
 
@@ -1127,4 +1125,4 @@ devoir mettre à jour la collection si vous modifiez un cookie::
 
 .. meta::
     :title lang=fr: Objets ServerRequest et Response
-    :keywords lang=fr: requête controller,paramètres de requête,tableaux indicés,purpose index,objets réponse,information domaine,Objet requête,donnée requêtée,interrogation,params,précédentes versions,introspection,dispatcher,rout,structures de données,tableaux,adresse ip,migration,indexes,cakephp
+    :keywords lang=fr: requête controller,paramètres de requête,tableaux indicés,purpose index,objets réponse,information domaine,Objet requête,donnée requêtée,interrogation,params,parameters,précédentes versions,introspection,dispatcher,rout,structures de données,tableaux,adresse ip,migration,indexes,cakephp

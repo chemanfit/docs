@@ -282,8 +282,6 @@ There are several built-in detectors that you can use:
   X-Requested-With = XMLHttpRequest.
 * ``is('ssl')`` Check to see whether the request is via SSL.
 * ``is('flash')`` Check to see whether the request has a User-Agent of Flash.
-* ``is('requested')`` Check to see whether the request has a query param
-  'requested' with value 1.
 * ``is('json')`` Check to see whether the request has 'json' extension and
   accept 'application/json' mimetype.
 * ``is('xml')`` Check to see whether the request has 'xml' extension and accept
@@ -376,7 +374,7 @@ for the request. For example::
 While some apache installs don't make the ``Authorization`` header accessible,
 CakePHP will make it available through apache specific methods as required.
 
-.. php:method:: referer($local = false)
+.. php:method:: referer($local = true)
 
 Returns the referring address for the request.
 
@@ -1078,4 +1076,4 @@ collection if you modify a cookie::
 
 .. meta::
     :title lang=en: Request and Response objects
-    :keywords lang=en: request controller,request parameters,array indexes,purpose index,response objects,domain information,request object,request data,interrogating,params,previous versions,introspection,dispatcher,rout,data structures,arrays,ip address,migration,indexes,cakephp,PSR-7,immutable
+    :keywords lang=en: request controller,request parameters,array indexes,purpose index,response objects,domain information,request object,request data,interrogating,params,parameters,previous versions,introspection,dispatcher,rout,data structures,arrays,ip address,migration,indexes,cakephp,PSR-7,immutable

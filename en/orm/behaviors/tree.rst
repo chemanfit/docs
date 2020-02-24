@@ -44,7 +44,7 @@ hierarchical data in::
 
     class CategoriesTable extends Table
     {
-        public function initialize(array $config)
+        public function initialize(array $config): void
         {
             $this->addBehavior('Tree');
         }
@@ -53,7 +53,7 @@ hierarchical data in::
 Once added, you can let CakePHP build the internal structure if the table is
 already holding some rows::
 
-    $categories = TableRegistry::get('Categories');
+    $categories = TableRegistry::getTableLocator()->get('Categories');
     $categories->recover();
 
 You can verify it works by getting any row from the table and asking for the
@@ -135,6 +135,16 @@ An example of all options in use is::
         'spacer' => ' '
     ]);
 
+An example using closure::
+
+    $query = $categories->find('treeList', [
+        'keyPath' => 'url',
+        'valuePath' => function($entity){
+            return $entity->url . ' ' . $entity->id
+         },
+        'spacer' => ' '
+    ]);
+
 One very common task is to find the tree path from a particular node to the root
 of the tree. This is useful, for example, for adding the breadcrumbs list for
 a menu structure::
@@ -168,7 +178,7 @@ Configuration
 If the default column names that are used by this behavior don't match your own
 schema, you can provide aliases for them::
 
-    public function initialize(array $config)
+    public function initialize(array $config): void
     {
         $this->addBehavior('Tree', [
             'parent' => 'ancestor_id', // Use this instead of parent_id
@@ -200,34 +210,30 @@ a locations table you may want to create one tree per country::
 
     class LocationsTable extends Table
     {
-
-        public function initialize(array $config)
+        public function initialize(array $config): void
         {
             $this->addBehavior('Tree', [
                 'scope' => ['country_name' => 'Brazil']
             ]);
         }
-
     }
 
 In the previous example, all tree operations will be scoped to only the rows
 having the column ``country_name`` set to 'Brazil'. You can change the scoping
 on the fly by using the 'config' function::
 
-    $this->behaviors()->Tree->config('scope', ['country_name' => 'France']);
+    $this->behaviors()->Tree->setConfig('scope', ['country_name' => 'France']);
 
 Optionally, you can have a finer grain control of the scope by passing a closure
 as the scope::
 
-    $this->behaviors()->Tree->config('scope', function ($query) {
+    $this->behaviors()->Tree->setConfig('scope', function ($query) {
         $country = $this->getConfigureContry(); // A made-up function
         return $query->where(['country_name' => $country]);
     });
 
 Recovering with custom sort field
 =================================
-
-.. versionadded:: 3.0.14
 
 By default, recover() sorts the items using the primary key. This works great
 if this is a numeric (auto increment) column, but can lead to weird results if you

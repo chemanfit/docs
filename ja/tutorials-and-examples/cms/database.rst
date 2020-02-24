@@ -4,7 +4,9 @@ CMS チュートリアル - データベース作成
 先ほどは CakePHP をインストールしましたので、 :abbr:`CMS (Content Management System)`
 アプリケーションのためのデータベースをセットアップしましょう。まだセットアップしていない場合、
 例えば ``cake_cms`` のように、あなたの好きな名前で、このチュートリアルで使用する空のデータベースを
-作成してください。必要なテーブルを作成するために、以下の SQL を実行することができます。 ::
+作成してください。必要なテーブルを作成するために、以下の SQL を実行することができます。
+
+.. code-block:: mysql
 
     USE cake_cms;
 
@@ -47,7 +49,7 @@ CMS チュートリアル - データベース作成
 
     INSERT INTO users (email, password, created, modified)
     VALUES
-    ('cakephp@example.com', 'sekret', NOW(), NOW());
+    ('cakephp@example.com', 'secret', NOW(), NOW());
 
     INSERT INTO articles (user_id, title, slug, body, published, created, modified)
     VALUES
@@ -65,7 +67,7 @@ CMS チュートリアル - データベース作成
 データベースの設定
 ===================
 
-次に、どこにデータベースあるか、そしてどうやってテータベースに接続するかを CakePHP
+次に、どこにデータベースあるか、そしてどうやってデータベースに接続するかを CakePHP
 に伝えましょう。あなたのセットアップを適用するために **config/app.php**
 ファイルの中の ``Datasources.default`` 配列の値を置き換えてください。
 完全な設定配列の例は、以下のようになります。 ::
@@ -95,7 +97,7 @@ CMS チュートリアル - データベース作成
 
 .. note::
 
-    CakePHP のデフォルト設定ファイルの複製は **config/app.default.php** にあります。
+    app フォルダーに **config/app_local.php** がある場合、 app.php の設定を上書きします。
 
 最初のモデルの作成
 ========================
@@ -106,7 +108,7 @@ CMS チュートリアル - データベース作成
 
 CakePHP のモデルは ``Table`` と ``Entity`` オブジェクトで構成されています。 ``Table``
 オブジェクトは、指定されたテーブルの中に保存されたエンティティーの集合へのアクセスを提供します。
-それらは **src/Model/Table** の中に保存されます。私たちが作成するファイルは、
+それらは **src/Model/Table** の中に保存されます。私たちが今から作成するファイルは、
 **src/Model/Table/ArticlesTable.php** に保存されます。完成したファイルは次のようになります。 ::
 
     <?php

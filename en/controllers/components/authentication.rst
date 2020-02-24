@@ -1,5 +1,4 @@
-
-Authentication
+AuthComponent
 ##############
 
 .. php:class:: AuthComponent(ComponentCollection $collection, array $config = [])
@@ -9,6 +8,12 @@ almost every web application. In CakePHP AuthComponent provides a
 pluggable way to do these tasks. AuthComponent allows you to combine
 authentication objects and authorization objects to create flexible
 ways of identifying and checking user authorization.
+
+
+.. deprecated:: 4.0.0
+    The AuthComponent is deprecated as of 4.0.0 and will be replaced by the
+    `authorization <https://book.cakephp.org/authorization/>`__
+    and `authentication <https://book.cakephp.org/authentication/>`__ plugins.
 
 .. _authentication-objects:
 
@@ -78,10 +83,10 @@ configuration information into each authentication object using an
 array::
 
     // Simple setup
-    $this->Auth->config('authenticate', ['Form']);
+    $this->Auth->setConfig('authenticate', ['Form']);
 
     // Pass settings in
-    $this->Auth->config('authenticate', [
+    $this->Auth->setConfig('authenticate', [
         'Basic' => ['userModel' => 'Members'],
         'Form' => ['userModel' => 'Members']
     ]);
@@ -93,7 +98,7 @@ to every attached object. The ``all`` key is also exposed as
 ``AuthComponent::ALL``::
 
     // Pass settings in using 'all'
-    $this->Auth->config('authenticate', [
+    $this->Auth->setConfig('authenticate', [
         AuthComponent::ALL => ['userModel' => 'Members'],
         'Basic',
         'Form'
@@ -111,14 +116,10 @@ keys.
 - ``userModel`` The model name of the users table; defaults to Users.
 - ``finder`` The finder method to use to fetch a user record. Defaults to 'all'.
 - ``passwordHasher`` Password hasher class; Defaults to ``Default``.
-- The ``scope`` and ``contain`` options have been deprecated as of 3.1. Use
-  a custom finder instead to modify the query to fetch a user record.
-- The ``userFields`` option has been deprecated as of 3.1. Use ``select()`` in
-  your custom finder.
 
 To configure different fields for user in your ``initialize()`` method::
 
-    public function initialize()
+    public function initialize(): void
     {
         parent::initialize();
         $this->loadComponent('Auth', [
@@ -135,7 +136,7 @@ within the ``authenticate`` or ``Form`` element. They should be at the same leve
 the authenticate key. The setup above with other Auth configuration
 should look like::
 
-    public function initialize()
+    public function initialize(): void
     {
         parent::initialize();
         $this->loadComponent('Auth', [
@@ -181,7 +182,7 @@ Customizing Find Query
 You can customize the query used to fetch the user record using the ``finder``
 option in authenticate class config::
 
-    public function initialize()
+    public function initialize(): void
     {
         parent::initialize();
         $this->loadComponent('Auth', [
@@ -206,10 +207,6 @@ authenticate a user, such as ``username`` and ``password``::
 
         return $query;
     }
-
-.. note::
-    ``finder`` option is available since 3.1. Prior to that you can use ``scope``
-    and ``contain`` options to modify a query.
 
 Identifying Users and Logging Them In
 -------------------------------------
@@ -261,9 +258,8 @@ to after logging in.
 If no parameter is passed, the returned URL will use the following rules:
 
 - Returns the normalized URL from the ``redirect`` query string value if it is
-  present and for the same domain the current app is running on. Before 3.4.0,
-  the ``Auth.redirect`` session value was used.
-- If there is no query string/session value and there is a config
+  present and for the same domain the current app is running on.
+- If there is no query string/session value and there is a config with
   ``loginRedirect``, the ``loginRedirect`` value is returned.
 - If there is no redirect value and no ``loginRedirect``, ``/`` is returned.
 
@@ -365,13 +361,13 @@ generate these API tokens randomly using libraries from CakePHP::
 
     use Cake\Auth\DefaultPasswordHasher;
     use Cake\Utility\Text;
-    use Cake\Event\Event;
+    use Cake\Event\EventInterface;
     use Cake\ORM\Table;
     use Cake\Utility\Security;
 
     class UsersTable extends Table
     {
-        public function beforeSave(Event $event)
+        public function beforeSave(EventInterface $event)
         {
             $entity = $event->getData('entity');
 
@@ -433,12 +429,12 @@ from the normal password hash::
     namespace App\Model\Table;
 
     use Cake\Auth\DigestAuthenticate;
-    use Cake\Event\Event;
+    use Cake\Event\EventInterface;
     use Cake\ORM\Table;
 
     class UsersTable extends Table
     {
-        public function beforeSave(Event $event)
+        public function beforeSave(EventInterface $event)
         {
             $entity = $event->getData('entity');
 
@@ -514,7 +510,7 @@ Using Custom Authentication Objects
 Once you've created your custom authentication objects, you can use them
 by including them in ``AuthComponent``'s authenticate array::
 
-    $this->Auth->config('authenticate', [
+    $this->Auth->setConfig('authenticate', [
         'Openid', // app authentication object.
         'AuthBag.Openid', // plugin authentication object.
     ]);
@@ -543,29 +539,24 @@ Displaying Auth Related Flash Messages
 
 In order to display the session error messages that Auth generates, you
 need to add the following code to your layout. Add the following two
-lines to the **src/Template/Layout/default.ctp** file in the body section::
+lines to the **templates/Layout/default.php** file in the body section::
 
-    // Only this is necessary after 3.4.0
     echo $this->Flash->render();
-
-    // Prior to 3.4.0 this will be required as well.
-    echo $this->Flash->render('auth');
 
 You can customize the error messages and flash settings ``AuthComponent``
 uses. Using ``flash`` config you can configure the parameters
 ``AuthComponent`` uses for setting flash messages. The available keys are
 
-- ``key`` - The key to use, defaults to 'default'. Prior to 3.4.0, the key
-  defaulted to 'auth'.
+- ``key`` - The key to use, defaults to 'default'.
 - ``element`` - The element name to use for rendering, defaults to null.
-- ``params`` - The array of additional params to use, defaults to ``[]``.
+- ``params`` - The array of additional parameters to use, defaults to ``[]``.
 
 In addition to the flash message settings you can customize other error
 messages ``AuthComponent`` uses. In your controller's ``beforeFilter()``, or
 component settings you can use ``authError`` to customize the error used
 for when authorization fails::
 
-    $this->Auth->config('authError', "Woopsie, you are not authorized to access this area.");
+    $this->Auth->setConfig('authError', "Woopsie, you are not authorized to access this area.");
 
 Sometimes, you want to display the authorization error only after
 the user has already logged-in. You can suppress this message by setting
@@ -574,7 +565,7 @@ its value to boolean ``false``.
 In your controller's ``beforeFilter()`` or component settings::
 
     if (!$this->Auth->user()) {
-        $this->Auth->config('authError', false);
+        $this->Auth->setConfig('authError', false);
     }
 
 .. _hashing-passwords:
@@ -592,7 +583,6 @@ database, the easiest way is to use a setter function in your User entity::
 
     class User extends Entity
     {
-
         // ...
 
         protected function _setPassword($password)
@@ -628,7 +618,6 @@ In order to use a different password hasher, you need to create the class in
 
     class LegacyPasswordHasher extends AbstractPasswordHasher
     {
-
         public function hash($password)
         {
             return sha1($password);
@@ -643,7 +632,7 @@ In order to use a different password hasher, you need to create the class in
 Then you are required to configure the ``AuthComponent`` to use your own password
 hasher::
 
-    public function initialize()
+    public function initialize(): void
     {
         parent::initialize();
         $this->loadComponent('Auth', [
@@ -669,7 +658,7 @@ to another, this is achieved through the ``FallbackPasswordHasher`` class.
 Assuming you are migrating your app from CakePHP 2.x which uses ``sha1`` password hashes, you
 can configure the ``AuthComponent`` as follows::
 
-    public function initialize()
+    public function initialize(): void
     {
         parent::initialize();
         $this->loadComponent('Auth', [
@@ -784,12 +773,12 @@ Deciding When to run Authentication
 -----------------------------------
 
 In some cases you may want to use ``$this->Auth->user()`` in the
-``beforeFilter(Event $event)`` method. This is achievable by using the
+``beforeFilter()`` method. This is achievable by using the
 ``checkAuthIn`` config key. The following changes which event for which initial
 authentication checks should be done::
 
     //Set up AuthComponent to authenticate in initialize()
-    $this->Auth->config('checkAuthIn', 'Controller.initialize');
+    $this->Auth->setConfig('checkAuthIn', 'Controller.initialize');
 
 Default value for ``checkAuthIn`` is ``'Controller.startup'`` - but by using
 ``'Controller.initialize'`` initial authentication is done before ``beforeFilter()``
@@ -838,10 +827,10 @@ configuration information into each authorization object, using an
 array::
 
     // Basic setup
-    $this->Auth->config('authorize', ['Controller']);
+    $this->Auth->setConfig('authorize', ['Controller']);
 
     // Pass settings in
-    $this->Auth->config('authorize', [
+    $this->Auth->setConfig('authorize', [
         'Actions' => ['actionPath' => 'controllers/'],
         'Controller'
     ]);
@@ -852,7 +841,7 @@ to set settings that are passed to every attached object. The ``all`` key
 is also exposed as ``AuthComponent::ALL``::
 
     // Pass settings in using 'all'
-    $this->Auth->config('authorize', [
+    $this->Auth->setConfig('authorize', [
         AuthComponent::ALL => ['actionPath' => 'controllers/'],
         'Actions',
         'Controller'
@@ -862,8 +851,8 @@ In the above example, both the ``Actions`` and ``Controller`` will get the
 settings defined for the 'all' key. Any settings passed to a specific
 authorization object will override the matching key in the 'all' key.
 
-If an authenticated user tries to go to a URL he's not authorized to access,
-he's redirected back to the referrer. If you do not want such redirection
+If an authenticated user tries to go to a URL they are not authorized to access,
+they will be redirected back to the referrer. If you do not want such redirection
 (mostly needed when using stateless authentication adapter) you can set config
 option ``unauthorizedRedirect`` to ``false``. This causes ``AuthComponent``
 to throw a ``ForbiddenException`` instead of redirecting.
@@ -903,7 +892,7 @@ Using Custom Authorize Objects
 Once you've created your custom authorize object, you can use them by
 including them in your ``AuthComponent``'s authorize array::
 
-    $this->Auth->config('authorize', [
+    $this->Auth->setConfig('authorize', [
         'Ldap', // app authorize object.
         'AuthBag.Combo', // plugin authorize object.
     ]);
@@ -913,7 +902,7 @@ Using No Authorization
 
 If you'd like to not use any of the built-in authorization objects and
 want to handle things entirely outside of ``AuthComponent``, you can set
-``$this->Auth->config('authorize', false);``. By default ``AuthComponent``
+``$this->Auth->setConfig('authorize', false);``. By default ``AuthComponent``
 starts off with ``authorize`` set to ``false``. If you don't use an
 authorization scheme, make sure to check authorization yourself in your
 controller's ``beforeFilter()`` or with another component.
@@ -984,7 +973,7 @@ checked::
 
     class AppController extends Controller
     {
-        public function initialize()
+        public function initialize(): void
         {
             parent::initialize();
             $this->loadComponent('Auth', [
@@ -1000,7 +989,7 @@ checked::
             }
 
             // Only admins can access admin functions
-            if ($this->request->getParam('prefix') === 'admin') {
+            if ($this->request->getParam('prefix') === 'Admin') {
                 return (bool)($user['role'] === 'admin');
             }
 
@@ -1017,7 +1006,7 @@ Configuration options
 =====================
 
 The following settings can all be defined either in your controller's
-``initialize()`` method or using ``$this->Auth->config()`` in your ``beforeFilter()``:
+``initialize()`` method or using ``$this->Auth->setConfig()`` in your ``beforeFilter()``:
 
 ajaxLogin
     The name of an optional view element to render when an AJAX request is made
@@ -1045,7 +1034,7 @@ flash
 
     - ``element`` - The element to use; defaults to 'default'.
     - ``key`` - The key to use; defaults to 'auth'.
-    - ``params`` - The array of additional params to use; defaults to '[]'.
+    - ``params`` - The array of additional parameters to use; defaults to '[]'.
 
 loginAction
     A URL (defined as a string or array) to the controller action that handles
@@ -1075,12 +1064,12 @@ checkAuthIn
     if you want the check to be done before controller's ``beforeFilter()``
     method is run.
 
-You can get current configuration values by calling ``$this->Auth->config()``::
+You can get current configuration values by calling ``$this->Auth->getConfig()``::
 only the configuration option::
 
-    $this->Auth->config('loginAction');
+    $this->Auth->getConfig('loginAction');
 
-    $this->redirect($this->Auth->config('loginAction'));
+    return $this->redirect($this->Auth->getConfig('loginAction'));
 
 This is useful if you want to redirect a user to the ``login`` route for example.
 Without a parameter, the full configuration will be returned.

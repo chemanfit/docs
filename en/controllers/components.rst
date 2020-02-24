@@ -16,8 +16,6 @@ chapter for each component:
     :maxdepth: 1
 
     /controllers/components/authentication
-    /controllers/components/cookie
-    /controllers/components/csrf
     /controllers/components/flash
     /controllers/components/security
     /controllers/components/pagination
@@ -29,49 +27,45 @@ Configuring Components
 ======================
 
 Many of the core components require configuration. Some examples of components
-requiring configuration are :doc:`/controllers/components/authentication` and
-:doc:`/controllers/components/cookie`.  Configuration for these components,
+requiring configuration are :doc:`/controllers/components/security` and
+:doc:`/controllers/components/request-handling`.  Configuration for these components,
 and for components in general, is usually done via ``loadComponent()`` in your
 Controller's ``initialize()`` method or via the ``$components`` array::
 
     class PostsController extends AppController
     {
-        public function initialize()
+        public function initialize(): void
         {
             parent::initialize();
-            $this->loadComponent('Auth', [
-                'authorize' => 'Controller',
-                'loginAction' => ['controller' => 'Users', 'action' => 'login']
+            $this->loadComponent('RequestHandler', [
+                'viewClassMap' => ['json' => 'AppJsonView'],
             ]);
-            $this->loadComponent('Cookie', ['expires' => '1 day']);
+            $this->loadComponent('Security', ['blackholeCallback' => 'blackhole']);
         }
 
     }
 
-You can configure components at runtime using the ``config()`` method. Often,
+You can configure components at runtime using the ``setConfig()`` method. Often,
 this is done in your controller's ``beforeFilter()`` method. The above could
 also be expressed as::
 
-    public function beforeFilter(Event $event)
+    public function beforeFilter(EventInterface $event)
     {
-        $this->Auth->config('authorize', ['controller']);
-        $this->Auth->config('loginAction', ['controller' => 'Users', 'action' => 'login']);
-
-        $this->Cookie->config('name', 'CookieMonster');
+        $this->RequestHandler->setConfig('viewClassMap', ['rss' => 'MyRssView']);
     }
 
-Like helpers, components implement a ``config()`` method that is used to get and
-set any configuration data for a component::
+Like helpers, components implement ``getConfig()`` and ``setConfig()`` methods
+to read and write configuration data::
 
     // Read config data.
-    $this->Auth->config('loginAction');
+    $this->RequestHandler->getConfig('viewClassMap');
 
     // Set config
-    $this->Csrf->config('cookieName', 'token');
+    $this->Csrf->setConfig('cookieName', 'token');
 
 As with helpers, components will automatically merge their ``$_defaultConfig``
 property with constructor configuration to create the ``$_config`` property
-which is accessible with ``config()``.
+which is accessible with ``getConfig()`` and  ``setConfig()``.
 
 Aliasing Components
 -------------------
@@ -84,7 +78,7 @@ implementation::
     // src/Controller/PostsController.php
     class PostsController extends AppController
     {
-        public function initialize()
+        public function initialize(): void
         {
             $this->loadComponent('Auth', [
                 'className' => 'MyAuth'
@@ -136,7 +130,7 @@ in your controller, you could access it like so::
 
     class PostsController extends AppController
     {
-        public function initialize()
+        public function initialize(): void
         {
             parent::initialize();
             $this->loadComponent('Flash');
@@ -197,7 +191,7 @@ component, through which we can access an instance of it::
     // In a controller
     // Make the new component available at $this->Math,
     // as well as the standard $this->Csrf
-    public function initialize()
+    public function initialize(): void
     {
         parent::initialize();
         $this->loadComponent('Math');
@@ -210,7 +204,7 @@ constructor. These parameters can then be handled by
 the Component::
 
     // In your controller.
-    public function initialize()
+    public function initialize(): void
     {
         parent::initialize();
         $this->loadComponent('Math', [
@@ -241,7 +235,7 @@ way you include them in controllers - using the ``$components`` var::
         public $components = ['Existing'];
 
         // Execute any other additional setup for your component.
-        public function initialize(array $config)
+        public function initialize(array $config): void
         {
             $this->Existing->foo();
         }
@@ -259,7 +253,6 @@ way you include them in controllers - using the ``$components`` var::
 
     class ExistingComponent extends Component
     {
-
         public function foo()
         {
             // ...
@@ -277,12 +270,7 @@ Accessing a Component's Controller
 From within a Component you can access the current controller through the
 registry::
 
-    $controller = $this->_registry->getController();
-
-You can access the controller in any callback method from the event
-object::
-
-    $controller = $event->getSubject();
+    $controller = $this->getController();
 
 Component Callbacks
 ===================
@@ -290,33 +278,50 @@ Component Callbacks
 Components also offer a few request life-cycle callbacks that allow them to
 augment the request cycle.
 
-.. php:method:: beforeFilter(Event $event)
+.. php:method:: beforeFilter(EventInterface $event)
 
     Is called before the controller's
     beforeFilter method, but *after* the controller's initialize() method.
 
-.. php:method:: startup(Event $event)
+.. php:method:: startup(EventInterface $event)
 
     Is called after the controller's beforeFilter
     method but before the controller executes the current action
     handler.
 
-.. php:method:: beforeRender(Event $event)
+.. php:method:: beforeRender(EventInterface $event)
 
     Is called after the controller executes the requested action's logic,
     but before the controller renders views and layout.
 
-.. php:method:: shutdown(Event $event)
+.. php:method:: shutdown(EventInterface $event)
 
     Is called before output is sent to the browser.
 
-.. php:method:: beforeRedirect(Event $event, $url, Response $response)
+.. php:method:: beforeRedirect(EventInterface $event, $url, Response $response)
 
     Is invoked when the controller's redirect
     method is called but before any further action. If this method
     returns ``false`` the controller will not continue on to redirect the
     request. The $url, and $response parameters allow you to inspect and modify
     the location or any other headers in the response.
+
+.. _redirect-component-events:
+
+Using Redirects in Component Events
+===================================
+
+To redirect from within a component callback method you can use the following::
+
+    public function beforeFilter(EventInterface $event)
+    {
+        $event->stopPropagation();
+        return $this->getController()->redirect('/');
+    }
+
+By stopping the event you let CakePHP know that you don't want any other
+component callbacks to run, and that the controller should not handle the action
+any further.
 
 .. meta::
     :title lang=en: Components

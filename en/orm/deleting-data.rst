@@ -32,6 +32,13 @@ transaction with the atomic option::
 
     $result = $this->Articles->delete($entity, ['atomic' => false]);
 
+The ``$options`` parameter supports the following options:
+
+- ``atomic`` Defaults to true. When true the deletion happens within
+  a transaction.
+- ``checkRules`` Defaults to true. Check deletion rules before deleting
+  records.
+
 Cascading Deletes
 -----------------
 
@@ -58,6 +65,20 @@ these options enabled would be::
 Bulk Deletes
 ------------
 
+.. php:method:: deleteMany($entities, $options = [])
+
+If you have an array of entities you want to delete you can use ``deleteMany()``
+to delete them in a single transaction::
+
+    // Get a boolean indicating success
+    $success = $this->Articles->deleteMany($entities);
+
+    // Will throw a PersistenceFailedException if any entity cannot be deleted.
+    $this->Articles->deleteManyOrFail($entities);
+
+The ``$options`` for these methods are the same as ``delete()``. Deleting
+records with these method **will** trigger events.
+
 .. php:method:: deleteAll($conditions)
 
 There may be times when deleting rows one by one is not efficient or useful.
@@ -70,7 +91,8 @@ once::
         return $this->deleteAll(['is_spam' => true]);
     }
 
-A bulk-delete will be considered successful if 1 or more rows are deleted.
+A bulk-delete will be considered successful if 1 or more rows are deleted. The
+function returns the number of deleted records as an integer.
 
 .. warning::
 
@@ -83,7 +105,7 @@ Strict Deletes
 .. php:method:: deleteOrFail($entity, $options = [])
 
 Using this method will throw an
-:php:exc:`Cake\\ORM\\Exception\\PersistenceFailedException` if :
+:php:exc:`Cake\\ORM\\Exception\\PersistenceFailedException` if:
 
 * the entity is new
 * the entity has no primary key value
@@ -101,5 +123,3 @@ If you want to track down the entity that failed to save, you can use the
 
 As this internally performs a :php:meth:`Cake\\ORM\\Table::delete()` call, all
 corresponding delete events will be triggered.
-
-.. versionadded:: 3.4.1

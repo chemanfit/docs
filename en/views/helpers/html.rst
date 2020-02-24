@@ -155,11 +155,20 @@ icon     image/x-icon
     );
     ?>
     // Output (line breaks added)
+    // Note: The helper code makes two meta tags to  ensure the
+    // icon is downloaded by both newer and older browsers
+    // which require different rel attribute values.
     <link
-        href="http://example.com/favicon.ico"
-        title="favicon.ico" type="image/x-icon"
-        rel="alternate"
+        href="/subdir/favicon.ico"
+        type="image/x-icon"
+        rel="icon"
     />
+    <link
+        href="/subdir/favicon.ico"
+        type="image/x-icon"
+        rel="shortcut icon"
+    />
+
     <?= $this->Html->meta(
         'Comments',
         '/comments/index.rss',
@@ -205,44 +214,6 @@ In addition to making predefined meta tags, you can create link elements::
 
 Any attributes provided to meta() when called this way will be added to the
 generated link tag.
-
-Creating DOCTYPE
-----------------
-
-.. php:method:: docType(string $type = 'html5')
-
-Returns a (X)HTML DOCTYPE (document type declaration). Supply the document
-type according to the following table:
-
-+--------------------------+----------------------------------+
-| type                     | translated value                 |
-+==========================+==================================+
-| html4-strict             | HTML 4.01 Strict                 |
-+--------------------------+----------------------------------+
-| html4-trans              | HTML 4.01 Transitional           |
-+--------------------------+----------------------------------+
-| html4-frame              | HTML 4.01 Frameset               |
-+--------------------------+----------------------------------+
-| html5 (default)          | HTML5                            |
-+--------------------------+----------------------------------+
-| xhtml-strict             | XHTML 1.0 Strict                 |
-+--------------------------+----------------------------------+
-| xhtml-trans              | XHTML 1.0 Transitional           |
-+--------------------------+----------------------------------+
-| xhtml-frame              | XHTML 1.0 Frameset               |
-+--------------------------+----------------------------------+
-| xhtml11                  | XHTML 1.1                        |
-+--------------------------+----------------------------------+
-
-::
-
-    echo $this->Html->docType();
-    // Outputs: <!DOCTYPE html>
-
-    echo $this->Html->docType('html4-trans');
-    // Outputs:
-    // <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-    //    "http://www.w3.org/TR/html4/loose.dtd">
 
 Linking to Images
 -----------------
@@ -298,6 +269,17 @@ plugin you can do the following. For example if you had a ``Blog`` plugin,
 and also wanted to include **webroot/img/Blog.icon.png**, you would::
 
     echo $this->Html->image('Blog.icon.png', ['plugin' => false]);
+
+If you would like the prefix of the URL to not be ``/img``, you can override this setting by specifying the prefix in the ``$options`` array ::
+
+    echo $this->Html->image("logo.png", ['pathPrefix' => '']);
+
+Will output:
+
+.. code-block:: html
+
+    <img src="logo.jpg" alt="" />
+
 
 Creating Links
 --------------
@@ -649,8 +631,8 @@ defaults provided in the ``$thOptions``::
 
     echo $this->Html->tableHeaders([
         'id',
-        ['Name' => ['class' => 'highlight']],
-        ['Date' => ['class' => 'sortable']]
+        ['Name', ['class' => 'highlight']],
+        ['Date', ['class' => 'sortable']]
     ]);
 
 Output:
@@ -754,19 +736,20 @@ Output:
 Changing the Tags Output by HtmlHelper
 ======================================
 
-.. php:method:: setTemplates($templates)
+.. php:method:: setTemplates(array $templates)
 
-The ``$templates`` parameter can be either a string file path to the PHP
-file containing the tags you want to load, or an array of templates to
-add/replace::
-
-    // Load templates from config/my_html.php
-    $this->Html->setTemplates('my_html');
+Load an array of templates to add/replace templates::
 
     // Load specific templates.
     $this->Html->setTemplates([
         'javascriptlink' => '<script src="{{url}}" type="text/javascript"{{attrs}}></script>'
     ]);
+
+You can load a configuration file containing templates using the templater
+directly::
+
+    // Load a configuration file with templates.
+    $this->Html->templater()->load('my_tags');
 
 When loading files of templates, your file should look like::
 
@@ -780,68 +763,7 @@ When loading files of templates, your file should look like::
     Template strings containing a percentage sign (``%``) need special attention,
     you should prefix this character with another percentage so it looks like
     ``%%``. The reason is that internally templates are compiled to be used with
-    ``sprintf()``. Example: '<div style="width:{{size}}%%">{{content}}</div>'
-
-Creating Breadcrumb Trails with HtmlHelper
-==========================================
-
-.. php:method:: addCrumb(string $name, string $link = null, mixed $options = null)
-.. php:method:: getCrumbs(string $separator = '&raquo;', string $startText = false)
-.. php:method:: getCrumbList(array $options = [], $startText = false)
-
-Many applications have breadcrumb trails to ease end user navigations. You can
-create a breadcrumb trail in your app with some help from HtmlHelper. To make
-bread crumbs, first the following in your layout
-template::
-
-    echo $this->Html->getCrumbs(' > ', 'Home');
-
-The ``$startText`` option can also accept an array. This gives more control
-over the generated first link::
-
-    echo $this->Html->getCrumbs(' > ', [
-        'text' => $this->Html->image('home.png'),
-        'url' => ['controller' => 'Pages', 'action' => 'display', 'home'],
-        'escape' => false
-    ]);
-
-Any keys that are not ``text`` or ``url`` will be passed to
-:php:meth:`~HtmlHelper::link()` as the ``$options`` parameter.
-
-Now, in your view you'll want to add the following to start the
-breadcrumb trails on each of the pages::
-
-    $this->Html->addCrumb('Users', '/users');
-    $this->Html->addCrumb('Add User', ['controller' => 'Users', 'action' => 'add']);
-
-This will add the output of "**Home > Users > Add User**" in your layout where
-``getCrumbs`` was added.
-
-You can also fetch the crumbs formatted inside an HTML list::
-
-    echo $this->Html->getCrumbList();
-
-As options you can use regular HTML parameter that fits in the ``<ul>``
-(Unordered List) such as ``class`` and for the specific options, you have:
-``separator`` (will be between the ``<li>`` elements), ``firstClass`` and
-``lastClass`` like::
-
-    echo $this->Html->getCrumbList(
-        [
-            'firstClass' => false,
-            'lastClass' => 'active',
-            'class' => 'breadcrumb'
-        ],
-        'Home'
-    );
-
-This method uses :php:meth:`Cake\\View\\Helper\\HtmlHelper::tag()` to generate
-list and its elements. Works similar to
-:php:meth:`~Cake\\View\\Helper\\HtmlHelper::getCrumbs()`, so it uses options
-which every crumb was added with. You can use the ``$startText`` parameter to
-provide the first breadcrumb link/text. This is useful when you always want to
-include a root link. This option works the same as the ``$startText`` option for
-:php:meth:`~Cake\\View\\Helper\\HtmlHelper::getCrumbs()`.
+    ``sprintf()``. Example: ``<div style="width:{{size}}%%">{{content}}</div>``
 
 .. meta::
     :title lang=en: HtmlHelper
